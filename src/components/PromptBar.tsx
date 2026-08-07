@@ -280,6 +280,21 @@ export const PromptBar: React.FC<PromptBarProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    if (!isListening) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        stopVoiceListening();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isListening]);
+
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 B';
     const k = 1024;
@@ -402,10 +417,15 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                 <button
                   type="button"
                   onClick={stopVoiceListening}
-                  className="p-1.5 px-2 bg-zinc-200/70 hover:bg-zinc-200 border border-zinc-300/60 rounded-2xl shadow-2xs transition-all cursor-pointer flex items-center justify-center shrink-0"
+                  className="group p-1.5 px-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-2xl shadow-2xs transition-all cursor-pointer flex items-center justify-center shrink-0 w-9 h-8"
                   title="Stop Voice Input"
                 >
-                  <RedWaveformBars volume={micVolume} />
+                  <div className="group-hover:hidden flex items-center justify-center">
+                    <RedWaveformBars volume={micVolume} />
+                  </div>
+                  <div className="hidden group-hover:flex items-center justify-center text-rose-600">
+                    <MicOff className="w-4 h-4 animate-pulse" />
+                  </div>
                 </button>
               ) : (
                 <button
@@ -688,10 +708,15 @@ export const PromptBar: React.FC<PromptBarProps> = ({
                 <button
                   type="button"
                   onClick={stopVoiceListening}
-                  className="p-1.5 px-2 bg-zinc-200/70 hover:bg-zinc-200 border border-zinc-300/60 rounded-2xl shadow-2xs transition-all cursor-pointer flex items-center justify-center shrink-0"
+                  className="group p-1.5 px-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-2xl shadow-2xs transition-all cursor-pointer flex items-center justify-center shrink-0 w-9 h-8"
                   title="Stop Voice Dictation"
                 >
-                  <RedWaveformBars volume={micVolume} />
+                  <div className="group-hover:hidden flex items-center justify-center">
+                    <RedWaveformBars volume={micVolume} />
+                  </div>
+                  <div className="hidden group-hover:flex items-center justify-center text-rose-600">
+                    <MicOff className="w-4 h-4 animate-pulse" />
+                  </div>
                 </button>
               ) : (
                 <button
