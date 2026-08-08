@@ -133,7 +133,7 @@ Keep existing layout elements unless explicitly asked to remove them, and add or
             "X-Title": "Generative UI Studio"
           },
           body: JSON.stringify({
-            model: "google/gemini-2.5-flash:free",
+            model: "meta-llama/llama-3.3-70b-instruct:free",
             messages: [
               { role: "system", content: GENERATIVE_UI_SYSTEM_PROMPT },
               { role: "user", content: userInstruction }
