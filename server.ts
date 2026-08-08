@@ -1,6 +1,5 @@
 import express from "express";
 import path from "path";
-import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import dotenv from "dotenv";
 import { generateDynamicDomainSchema } from "./src/utils/schemaSynthesizer";
@@ -8,7 +7,7 @@ import { generateDynamicDomainSchema } from "./src/utils/schemaSynthesizer";
 dotenv.config();
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3001;
+const PORT = parseInt(process.env.PORT || "3001", 10);
 
 app.use(express.json({ limit: "10mb" }));
 
@@ -401,6 +400,7 @@ Keep existing layout elements unless explicitly asked to remove them, and add or
 async function startServer() {
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
