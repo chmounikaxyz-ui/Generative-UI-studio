@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { DynamicUISchema, PresetTemplate, ChatMessage, ThemeConfig } from './types';
+import { DynamicUISchema, PresetTemplate, ChatMessage, ThemeConfig, TableComponentData } from './types';
 import { DEMO_BURN_RATE_SCHEMA, PRESET_TEMPLATES, getPresetSchema } from './data/presets';
 import { Sidebar } from './components/Sidebar';
 import { PromptBar } from './components/PromptBar';
@@ -22,7 +22,7 @@ import { RideXApp } from './components/RideXApp';
 import { RemindMeApp } from './components/RemindMeApp';
 import { HotelLuxApp } from './components/HotelLuxApp';
 import { getThemeStyles } from './utils/themeUtils';
-import { generateDynamicDomainSchema } from './utils/schemaSynthesizer';
+import { generateDynamicDomainSchema, ensureRichVisualComponents, synthesizeComponentForSectionTitle } from './utils/schemaSynthesizer';
 import {
   Sparkles,
   Code,
@@ -38,50 +38,51 @@ import {
   Menu,
   Search,
   Bell,
-  Settings
+  Settings,
+  Loader2,
+  Plus,
+  Layers,
+  Activity,
+  Zap,
+  RefreshCw,
+  ShieldCheck,
+  CheckCircle2,
+  ArrowRight,
+  Filter,
+  Download,
+  TrendingUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { DynamicIcon } from './components/DynamicIcon';
 
 const getSidebarLinks = (schema: any) => {
   if (!schema) return [];
-  const p = (schema.generatedPrompt || schema.title || '').toLowerCase();
-  const category = (schema.category || '').toLowerCase();
 
-  if (
-    p.includes('ride') ||
-    p.includes('ridex') ||
-    p.includes('uber') ||
-    p.includes('cab') ||
-    p.includes('taxi') ||
-    p.includes('driver') ||
-    p.includes('transport') ||
-    category.includes('ride') ||
-    category.includes('transport')
-  ) {
-    return [
-      { label: 'Book Ride', icon: 'Navigation', tabId: 'dashboard' },
-      { label: 'Your Trips', icon: 'Clock', tabId: 'operations' },
-      { label: 'Wallet & Safety', icon: 'ShieldCheck', tabId: 'analytics' },
-      { label: 'Driver Mode', icon: 'Car', tabId: 'settings' }
-    ];
+  // Use custom navigation provided by AI schema if present
+  if (schema.customNavigation && Array.isArray(schema.customNavigation) && schema.customNavigation.length > 0) {
+    return schema.customNavigation;
   }
 
+  const id = (schema.id || '').toLowerCase();
+  const title = (schema.title || '').toLowerCase();
+  const category = (schema.category || '').toLowerCase();
+  const desc = (schema.description || '').toLowerCase();
+  const p = (schema.generatedPrompt || '').toLowerCase();
+  const fullText = `${id} ${title} ${category} ${desc} ${p}`;
+
+  // 1. Food Delivery, Swiggy, Zomato & Gourmet Food
   if (
-    p.includes('food') ||
-    p.includes('restaurant') ||
-    p.includes('delivery') ||
-    p.includes('swiggy') ||
-    p.includes('foodrush') ||
-    p.includes('dining') ||
-    p.includes('menu') ||
-    p.includes('meal') ||
-    p.includes('dish') ||
-    p.includes('pizza') ||
-    p.includes('burger') ||
-    p.includes('biryani') ||
-    category.includes('food') ||
-    category.includes('dining')
+    id.includes('foodrush') ||
+    title.includes('food') ||
+    fullText.includes('food delivery') ||
+    fullText.includes('restaurant') ||
+    fullText.includes('swiggy') ||
+    fullText.includes('zomato') ||
+    fullText.includes('gourmet food') ||
+    fullText.includes('dining app') ||
+    fullText.includes('pizza delivery') ||
+    fullText.includes('burger delivery') ||
+    fullText.includes('biryani')
   ) {
     return [
       { label: 'Restaurants', icon: 'Utensils', tabId: 'dashboard' },
@@ -90,80 +91,227 @@ const getSidebarLinks = (schema: any) => {
       { label: 'Offers & Deals', icon: 'Tag', tabId: 'settings' }
     ];
   }
-  
+
+  // 2. Healthcare, Medical, Patient, Doctor & Hospital (Check before SOS/Emergency!)
   if (
-    p.includes('remind') ||
-    p.includes('remaind') ||
-    p.includes('todo') ||
-    p.includes('task') ||
-    p.includes('planner') ||
-    p.includes('habit') ||
-    category.includes('productivity') ||
-    category.includes('planning')
-  ) {
-    return [
-      { label: 'Reminders', icon: 'CheckCircle', tabId: 'dashboard' },
-      { label: 'Calendar', icon: 'Calendar', tabId: 'operations' },
-      { label: 'Analytics', icon: 'TrendingUp', tabId: 'analytics' },
-      { label: 'Settings', icon: 'Settings', tabId: 'settings' }
-    ];
-  }
-  
-  if (
-    p.includes('fit') ||
-    p.includes('health') ||
-    p.includes('run') ||
-    p.includes('gym') ||
-    p.includes('workout') ||
+    id.includes('health') ||
+    id.includes('patient') ||
+    id.includes('medical') ||
+    title.includes('health') ||
+    title.includes('patient') ||
+    title.includes('doctor') ||
+    title.includes('hospital') ||
     category.includes('health') ||
-    category.includes('fitness')
+    category.includes('medical') ||
+    p.includes('health') ||
+    p.includes('patient') ||
+    p.includes('doctor') ||
+    p.includes('hospital') ||
+    p.includes('medical') ||
+    p.includes('clinic')
   ) {
     return [
-      { label: 'Workouts', icon: 'Activity', tabId: 'dashboard' },
-      { label: 'Diet Log', icon: 'Heart', tabId: 'operations' },
-      { label: 'Analytics', icon: 'TrendingUp', tabId: 'analytics' },
-      { label: 'Settings', icon: 'Settings', tabId: 'settings' }
+      { label: 'Patient Overview', icon: 'LayoutGrid', tabId: 'dashboard' },
+      { label: 'Appointments & Triage', icon: 'Calendar', tabId: 'operations' },
+      { label: 'Medical Records', icon: 'Activity', tabId: 'analytics' },
+      { label: 'Clinic Settings', icon: 'Settings', tabId: 'settings' }
     ];
   }
 
+  // 3. Safety, Emergency, SOS & Guardian (Only for dedicated panic / safety apps)
   if (
-    p.includes('shop') ||
-    p.includes('store') ||
+    id.includes('guardian') ||
+    id.includes('safety') ||
+    title.includes('guardian') ||
+    category.includes('safety') ||
+    p.includes('guardian') ||
+    p.includes('sos panic') ||
+    (p.includes('emergency') && !p.includes('health') && !p.includes('doctor'))
+  ) {
+    return [
+      { label: 'SOS Command', icon: 'ShieldCheck', tabId: 'dashboard' },
+      { label: 'GPS Telemetry', icon: 'Navigation', tabId: 'operations' },
+      { label: 'Emergency Hotlines', icon: 'PhoneCall', tabId: 'analytics' },
+      { label: 'Guardian Settings', icon: 'Settings', tabId: 'settings' }
+    ];
+  }
+
+  // 4. Hiring, Recruitment, HR & Candidate Pipeline
+  if (
+    id.includes('hiring') ||
+    title.includes('hiring') ||
+    title.includes('candidate') ||
+    category.includes('hr') ||
+    p.includes('hiring') ||
+    p.includes('recruitment') ||
+    p.includes('candidate') ||
+    p.includes('applicant') ||
+    p.includes('interview')
+  ) {
+    return [
+      { label: 'Recruitment Hub', icon: 'UserCheck', tabId: 'dashboard' },
+      { label: 'Candidate Pipeline', icon: 'Layers', tabId: 'operations' },
+      { label: 'Scorecards & Velocity', icon: 'TrendingUp', tabId: 'analytics' },
+      { label: 'Role Settings', icon: 'Settings', tabId: 'settings' }
+    ];
+  }
+
+  // 5. Inventory, SKU, Warehouse & E-Commerce
+  if (
+    id.includes('inventory') ||
+    title.includes('inventory') ||
+    category.includes('inventory') ||
     p.includes('inventory') ||
-    p.includes('product') ||
-    category.includes('commerce') ||
-    category.includes('inventory')
+    p.includes('sku') ||
+    p.includes('warehouse') ||
+    p.includes('supply chain') ||
+    p.includes('reorder')
   ) {
     return [
-      { label: 'Dashboard', icon: 'LayoutGrid', tabId: 'dashboard' },
-      { label: 'Inventory', icon: 'Layers', tabId: 'operations' },
-      { label: 'Sales Charts', icon: 'TrendingUp', tabId: 'analytics' },
-      { label: 'Settings', icon: 'Settings', tabId: 'settings' }
+      { label: 'Stock Overview', icon: 'LayoutGrid', tabId: 'dashboard' },
+      { label: 'Warehouse SKUs', icon: 'Layers', tabId: 'operations' },
+      { label: 'Demand Forecast', icon: 'TrendingUp', tabId: 'analytics' },
+      { label: 'Supplier Settings', icon: 'Settings', tabId: 'settings' }
     ];
   }
 
+  // 6. Startup Burn Rate & Financial Runway
   if (
-    p.includes('finance') ||
-    p.includes('crypto') ||
-    p.includes('mrr') ||
-    p.includes('dollar') ||
-    p.includes('money') ||
-    category.includes('finance') ||
-    category.includes('crypto')
+    id.includes('burn') ||
+    title.includes('burn rate') ||
+    title.includes('runway') ||
+    p.includes('burn rate') ||
+    p.includes('runway') ||
+    p.includes('headcount')
   ) {
     return [
-      { label: 'Dashboard', icon: 'DollarSign', tabId: 'dashboard' },
-      { label: 'Ledger', icon: 'CreditCard', tabId: 'operations' },
-      { label: 'Markets', icon: 'TrendingUp', tabId: 'analytics' },
-      { label: 'Settings', icon: 'Settings', tabId: 'settings' }
+      { label: 'Runway Overview', icon: 'DollarSign', tabId: 'dashboard' },
+      { label: 'Expense Ledger', icon: 'CreditCard', tabId: 'operations' },
+      { label: 'Forecast Model', icon: 'TrendingUp', tabId: 'analytics' },
+      { label: 'Finance Settings', icon: 'Settings', tabId: 'settings' }
     ];
   }
 
+  // 7. SaaS, MRR, Revenue & Churn
+  if (
+    id.includes('saas') ||
+    title.includes('saas') ||
+    title.includes('mrr') ||
+    category.includes('sales & saas') ||
+    p.includes('mrr') ||
+    p.includes('saas') ||
+    p.includes('churn') ||
+    p.includes('subscription')
+  ) {
+    return [
+      { label: 'MRR Overview', icon: 'DollarSign', tabId: 'dashboard' },
+      { label: 'Accounts Ledger', icon: 'CreditCard', tabId: 'operations' },
+      { label: 'Retention Analytics', icon: 'TrendingUp', tabId: 'analytics' },
+      { label: 'Billing Settings', icon: 'Settings', tabId: 'settings' }
+    ];
+  }
+
+  // 8. Diet, Calorie, Nutrition & Meal Planner
+  if (
+    id.includes('diet') ||
+    title.includes('diet') ||
+    title.includes('nutri') ||
+    p.includes('diet') ||
+    p.includes('nutrition') ||
+    p.includes('meal') ||
+    p.includes('calorie') ||
+    p.includes('macro')
+  ) {
+    return [
+      { label: 'Meal Schedule', icon: 'Utensils', tabId: 'dashboard' },
+      { label: 'Macro Nutrition', icon: 'PieChart', tabId: 'operations' },
+      { label: 'Grocery Checklist', icon: 'ShoppingBag', tabId: 'analytics' },
+      { label: 'Diet Goals', icon: 'Activity', tabId: 'settings' }
+    ];
+  }
+
+  // 9. Fitness, Gym & Workout Tracker
+  if (
+    id.includes('fit') ||
+    title.includes('fitness') ||
+    p.includes('workout') ||
+    p.includes('gym') ||
+    p.includes('fitness') ||
+    p.includes('exercise')
+  ) {
+    return [
+      { label: 'Workouts Hub', icon: 'Activity', tabId: 'dashboard' },
+      { label: 'Routine Log', icon: 'Clock', tabId: 'operations' },
+      { label: 'Strength Analytics', icon: 'TrendingUp', tabId: 'analytics' },
+      { label: 'Profile Settings', icon: 'Settings', tabId: 'settings' }
+    ];
+  }
+
+  // 10. Habit & Focus OS / Task & Todo Planner
+  if (
+    id.includes('habit') ||
+    title.includes('habit') ||
+    title.includes('focus') ||
+    p.includes('habit') ||
+    p.includes('focus') ||
+    p.includes('task') ||
+    p.includes('todo') ||
+    p.includes('planner')
+  ) {
+    return [
+      { label: 'Habit Streaks', icon: 'CheckCircle', tabId: 'dashboard' },
+      { label: 'Focus Routine', icon: 'Clock', tabId: 'operations' },
+      { label: 'Time Analytics', icon: 'TrendingUp', tabId: 'analytics' },
+      { label: 'Planner Settings', icon: 'Settings', tabId: 'settings' }
+    ];
+  }
+
+  // 11. Education, Courses & Academy
+  if (
+    id.includes('learn') ||
+    title.includes('course') ||
+    category.includes('education') ||
+    category.includes('learning') ||
+    p.includes('learn') ||
+    p.includes('course') ||
+    p.includes('school') ||
+    p.includes('academy') ||
+    p.includes('curriculum')
+  ) {
+    return [
+      { label: 'Academy Overview', icon: 'LayoutGrid', tabId: 'dashboard' },
+      { label: 'Course Modules', icon: 'BookOpen', tabId: 'operations' },
+      { label: 'Student Analytics', icon: 'TrendingUp', tabId: 'analytics' },
+      { label: 'Course Settings', icon: 'Settings', tabId: 'settings' }
+    ];
+  }
+
+  // 12. Ride Booking, Uber & Transport
+  if (
+    id.includes('ride') ||
+    title.includes('ride') ||
+    category.includes('transport') ||
+    p.includes('ride') ||
+    p.includes('uber') ||
+    p.includes('cab') ||
+    p.includes('taxi') ||
+    p.includes('driver')
+  ) {
+    return [
+      { label: 'Book Ride', icon: 'Navigation', tabId: 'dashboard' },
+      { label: 'Trip History', icon: 'Clock', tabId: 'operations' },
+      { label: 'Wallet & Safety', icon: 'ShieldCheck', tabId: 'analytics' },
+      { label: 'Driver Mode', icon: 'Car', tabId: 'settings' }
+    ];
+  }
+
+  // Dynamic fallback: Use capitalized schema category or topic title if available
+  const domainLabel = schema.category || 'Dashboard';
   return [
-    { label: 'Dashboard', icon: 'LayoutGrid', tabId: 'dashboard' },
-    { label: 'Operations', icon: 'Layers', tabId: 'operations' },
-    { label: 'Analytics', icon: 'TrendingUp', tabId: 'analytics' },
-    { label: 'Settings', icon: 'Settings', tabId: 'settings' }
+    { label: `${domainLabel} Overview`, icon: 'LayoutGrid', tabId: 'dashboard' },
+    { label: 'Operations & Execution', icon: 'Layers', tabId: 'operations' },
+    { label: 'Performance Analytics', icon: 'TrendingUp', tabId: 'analytics' },
+    { label: 'System Settings', icon: 'Settings', tabId: 'settings' }
   ];
 };
 
@@ -192,6 +340,12 @@ export default function App() {
     return initialHistory;
   });
   const [currentSchema, setCurrentSchema] = useState<DynamicUISchema | null>(null);
+  const [settingsNotifications, setSettingsNotifications] = useState<Record<string, boolean>>({
+    'Email Digests': true,
+    'Push Notifications': true,
+    'Marketing Emails': false,
+    'Security Alerts': true
+  });
   const [activeDraftId, setActiveDraftId] = useState<string>('');
   const [dashboardState, setDashboardState] = useState<Record<string, any>>({});
   const [selectedModel, setSelectedModel] = useState<string>('Gemini 2.5 Flash');
@@ -225,8 +379,59 @@ export default function App() {
 
   const getDynamicSchema = (): DynamicUISchema | null => {
     if (!currentSchema) return null;
-    
-    if (currentSchema.id === 'demo_burn_rate' || currentSchema.id === 'burn_rate') {
+
+    // Normalize schema layout structures, resolving widgets/elements to components and resolving type aliases
+    const normalizeSchema = (schema: DynamicUISchema): DynamicUISchema => {
+      const cloned = JSON.parse(JSON.stringify(schema));
+      const mapType = (type: string): string => {
+        switch (type) {
+          case 'data_table': return 'table';
+          case 'kanban_board': return 'kanban';
+          case 'alert_banner': return 'alert';
+          default: return type;
+        }
+      };
+
+      const normalizeSection = (sec: any) => {
+        if (!sec) return sec;
+        let rawComps = sec.components || sec.widgets || sec.elements || sec.cards || sec.items || [];
+        if (!Array.isArray(rawComps)) {
+          if (rawComps && typeof rawComps === 'object') {
+            rawComps = [rawComps];
+          } else {
+            rawComps = [];
+          }
+        }
+        if (rawComps.length === 0) {
+          rawComps = [synthesizeComponentForSectionTitle(sec.title || '')];
+        }
+        return {
+          ...sec,
+          components: rawComps.map((comp: any) => {
+            if (!comp) return comp;
+            return {
+              ...comp,
+              type: mapType(comp.type)
+            };
+          })
+        };
+      };
+
+      if (cloned.layout) {
+        cloned.layout = (Array.isArray(cloned.layout) ? cloned.layout : [cloned.layout]).map(normalizeSection);
+      }
+      if (cloned.operationsLayout) {
+        cloned.operationsLayout = (Array.isArray(cloned.operationsLayout) ? cloned.operationsLayout : [cloned.operationsLayout]).map(normalizeSection);
+      }
+      if (cloned.analyticsLayout) {
+        cloned.analyticsLayout = (Array.isArray(cloned.analyticsLayout) ? cloned.analyticsLayout : [cloned.analyticsLayout]).map(normalizeSection);
+      }
+      return cloned;
+    };
+
+    const normalizedSchema = normalizeSchema(currentSchema);
+
+    if (normalizedSchema.id === 'demo_burn_rate' || normalizedSchema.id === 'burn_rate') {
       const state = {
         headcount: 12,
         avgSalary: 11000,
@@ -234,18 +439,24 @@ export default function App() {
         serverCost: 12000,
         ...dashboardState
       };
-      
+
       const grossBurn = (state.headcount * state.avgSalary) + state.marketingBudget + state.serverCost;
       const revenue = 65000;
       const netBurn = grossBurn - revenue;
       const bankBalance = 1850000;
       const runwayMonths = netBurn > 0 ? (bankBalance / netBurn) : 99;
-      
-      const dynamicSchema = JSON.parse(JSON.stringify(currentSchema)) as DynamicUISchema;
-      
-      dynamicSchema.layout.forEach(sec => {
+
+      const dynamicSchema = JSON.parse(JSON.stringify(normalizedSchema)) as DynamicUISchema;
+
+      // Ensure layout is array
+      if (dynamicSchema.layout && !Array.isArray(dynamicSchema.layout)) {
+        dynamicSchema.layout = typeof dynamicSchema.layout === 'object' ? [dynamicSchema.layout as any] : [];
+      }
+
+      (dynamicSchema.layout || []).forEach(sec => {
+        if (!sec || !Array.isArray(sec.components)) return;
         sec.components.forEach(comp => {
-          if (comp.id === 'comp_calculator_headcount' && comp.type === 'calculator') {
+          if (comp && comp.id === 'comp_calculator_headcount' && comp.type === 'calculator') {
             comp.inputs = comp.inputs.map(inp => {
               if (state[inp.id] !== undefined) {
                 return { ...inp, value: state[inp.id] };
@@ -264,7 +475,7 @@ export default function App() {
           }
         });
       });
-      
+
       if (dynamicSchema.metrics) {
         dynamicSchema.metrics = dynamicSchema.metrics.map(m => {
           if (m.id === 'm1') {
@@ -276,11 +487,11 @@ export default function App() {
           return m;
         });
       }
-      
-      const runwayChart = dynamicSchema.layout
-        .flatMap(sec => sec.components)
-        .find(c => c.id === 'comp_chart_runway');
-        
+
+      const runwayChart = (dynamicSchema.layout || [])
+        .flatMap(sec => sec ? (sec.components || []) : [])
+        .find(c => c && c.id === 'comp_chart_runway');
+
       if (runwayChart && runwayChart.type === 'chart') {
         let currentCash = bankBalance;
         runwayChart.data = [
@@ -295,11 +506,11 @@ export default function App() {
           { month: "Sep (Proj)", cashReserve: Math.max(0, currentCash - 3 * netBurn), netBurn: netBurn, revenue: revenue }
         ];
       }
-      
+
       return dynamicSchema;
     }
-    
-    return currentSchema;
+
+    return normalizedSchema;
   };
 
   const activeRenderSchema = getDynamicSchema();
@@ -333,11 +544,12 @@ export default function App() {
 
   const handleSelectDraft = (preset: PresetTemplate) => {
     if (preset.schema) {
-      const clonedSchema = {
+      let clonedSchema: DynamicUISchema = {
         ...preset.schema,
         id: preset.id,
         generatedPrompt: preset.prompt
       };
+      clonedSchema = ensureRichVisualComponents(clonedSchema, preset.prompt || preset.title);
       setCurrentSchema(clonedSchema);
       setActiveDraftId(preset.id);
       setActiveNav('chats');
@@ -395,10 +607,11 @@ export default function App() {
     }
   };
 
-  const refineSchemaLocally = (schema: DynamicUISchema, promptText: string): DynamicUISchema => {
+  const refineSchemaLocally = (schema: DynamicUISchema, promptText: string, targetSubTab: string = 'dashboard'): DynamicUISchema => {
     const promptLower = promptText.toLowerCase();
     const newSchema: DynamicUISchema = JSON.parse(JSON.stringify(schema));
 
+    // 1. Theme accent updates
     if (promptLower.includes('indigo')) newSchema.theme.accentColor = 'indigo';
     else if (promptLower.includes('violet')) newSchema.theme.accentColor = 'violet';
     else if (promptLower.includes('amber')) newSchema.theme.accentColor = 'amber';
@@ -407,70 +620,146 @@ export default function App() {
     else if (promptLower.includes('emerald')) newSchema.theme.accentColor = 'emerald';
     else if (promptLower.includes('sky')) newSchema.theme.accentColor = 'sky';
 
-    if (promptLower.includes('alert') || promptLower.includes('warning') || promptLower.includes('notice')) {
-      const alertComponent = {
-        id: `alert_${Date.now()}`,
-        type: 'alert' as const,
-        title: 'Refinement Advisory',
-        severity: 'info' as const,
-        message: `System feature added: "${promptText}"`,
-        timestamp: 'Just now',
-        actionLabel: 'Acknowledge'
-      };
-      if (newSchema.layout.length > 0) {
+    const timestamp = Date.now();
+    const isOpsPrompt = targetSubTab === 'operations' ||
+      promptLower.includes('table') || promptLower.includes('record') || promptLower.includes('log') ||
+      promptLower.includes('kanban') || promptLower.includes('queue') || promptLower.includes('dispatch') ||
+      promptLower.includes('vendor') || promptLower.includes('workflow') || promptLower.includes('task');
+
+    if (isOpsPrompt) {
+      if (!newSchema.operationsLayout) newSchema.operationsLayout = [];
+      if (newSchema.operationsLayout.length === 0) {
+        newSchema.operationsLayout.push({ id: `sec_ops_${timestamp}`, title: "Operations Execution Workspace", gridCols: 1, components: [] });
+      }
+
+      if (promptLower.includes('table') || promptLower.includes('record') || promptLower.includes('log') || promptLower.includes('list') || targetSubTab === 'operations') {
+        const newTable: TableComponentData = {
+          id: `table_${timestamp}`,
+          type: 'table',
+          title: `Refined Operations Log (${promptText.slice(0, 20)})`,
+          searchable: true,
+          exportable: true,
+          columns: [
+            { key: "item", label: "Module / Record", type: "text" },
+            { key: "category", label: "Category", type: "text" },
+            { key: "status", label: "Status", type: "badge", badgeColorMap: { "Active": "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", "Pending": "bg-amber-500/10 text-amber-600 border-amber-500/20" } }
+          ],
+          data: [
+            { item: "System Telemetry Stream", category: "Core Ops", status: "Active" },
+            { item: "Data Processing Node #4", category: "Analytics", status: "Active" },
+            { item: "Automated Routine Dispatch", category: "Workflow", status: "Pending" }
+          ]
+        };
+        newSchema.operationsLayout[0].components.push(newTable);
+      }
+
+      if (promptLower.includes('alert') || promptLower.includes('warning') || promptLower.includes('notice') || promptLower.includes('sos')) {
+        const alertComponent = {
+          id: `alert_${timestamp}`,
+          type: 'alert' as const,
+          title: 'System Advisory Alert',
+          severity: (promptLower.includes('warning') || promptLower.includes('sos') ? 'warning' : 'info') as any,
+          message: `Updated telemetry: "${promptText}"`,
+          timestamp: 'Just now',
+          actionLabel: 'Acknowledge'
+        };
+        newSchema.operationsLayout[0].components.unshift(alertComponent);
+      }
+
+      newSchema.assistantMessage = `Updated Operations Workspace: Added operational module for "${promptText.slice(0, 25)}".`;
+    } else {
+      if (!newSchema.layout || newSchema.layout.length === 0) {
+        newSchema.layout = [{ id: `sec_${timestamp}`, gridCols: 1, components: [] }];
+      }
+
+      if (promptLower.includes('alert') || promptLower.includes('warning') || promptLower.includes('notice') || promptLower.includes('sos')) {
+        const alertComponent = {
+          id: `alert_${timestamp}`,
+          type: 'alert' as const,
+          title: 'System Advisory Alert',
+          severity: (promptLower.includes('warning') || promptLower.includes('sos') ? 'warning' : 'info') as any,
+          message: `Updated telemetry: "${promptText}"`,
+          timestamp: 'Just now',
+          actionLabel: 'Acknowledge'
+        };
         newSchema.layout[0].components.unshift(alertComponent);
       }
-    }
 
-    if (promptLower.includes('chart') || promptLower.includes('graph')) {
-      const newChart = {
-        id: `chart_${Date.now()}`,
-        type: 'chart' as const,
-        chartType: 'line' as const,
-        title: `Analytics Trend (${promptText.slice(0, 20)})`,
-        xAxisKey: 'period',
-        dataKeys: [{ key: 'val', name: 'Performance Metric', color: '#10b981' }],
-        data: [
-          { period: 'Q1', val: 120 },
-          { period: 'Q2', val: 185 },
-          { period: 'Q3', val: 240 },
-          { period: 'Q4', val: 320 }
-        ]
-      };
-      if (newSchema.layout.length > 0) {
+      if (promptLower.includes('chart') || promptLower.includes('graph') || promptLower.includes('trend')) {
+        const newChart = {
+          id: `chart_${timestamp}`,
+          type: 'chart' as const,
+          chartType: (promptLower.includes('bar') ? 'bar' : promptLower.includes('pie') ? 'pie' : 'area') as any,
+          title: `Analytics Trend (${promptText.slice(0, 25)})`,
+          xAxisKey: 'period',
+          dataKeys: [{ key: 'val', name: 'Performance Metric', color: '#10b981' }],
+          data: [
+            { period: 'Q1', val: 140 },
+            { period: 'Q2', val: 210 },
+            { period: 'Q3', val: 290 },
+            { period: 'Q4', val: 380 }
+          ]
+        };
         newSchema.layout[0].components.push(newChart);
       }
+
+      if (promptLower.includes('image') || promptLower.includes('photo') || promptLower.includes('banner') || promptLower.includes('picture') || promptLower.includes('hero')) {
+        const newImage = {
+          id: `img_${timestamp}`,
+          type: 'image' as const,
+          title: `Featured Visual Banner • ${promptText.slice(0, 30)}`,
+          description: "Contextual high-resolution photography banner",
+          url: promptLower.includes('food') || promptLower.includes('dish') || promptLower.includes('meal')
+            ? "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200&auto=format&fit=crop&q=80"
+            : promptLower.includes('health') || promptLower.includes('patient') || promptLower.includes('hospital')
+            ? "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1200&auto=format&fit=crop&q=80"
+            : promptLower.includes('car') || promptLower.includes('ride')
+            ? "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=1200&auto=format&fit=crop&q=80"
+            : promptLower.includes('tech') || promptLower.includes('saas') || promptLower.includes('code')
+            ? "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&auto=format&fit=crop&q=80"
+            : "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1200&auto=format&fit=crop&q=80",
+          aspectRatio: "wide" as const
+        };
+        newSchema.layout[0].components.unshift(newImage);
+      }
+
+      newSchema.assistantMessage = `Updated Dashboard View: Added component for "${promptText.slice(0, 25)}".`;
     }
 
-    newSchema.description = `${newSchema.description} (Refined: "${promptText}")`;
+    newSchema.description = `${newSchema.description} • Refined: "${promptText}"`;
     return newSchema;
   };
 
-  const handleGenerateUI = async (prompt: string, isRefine = false, customTheme?: ThemeConfig) => {
-    setIsLoading(true);
-    setGenerationProgress(5);
-    setGenerationStage('🔍 Analyzing natural language prompt & domain intent...');
+  const handleGenerateUI = async (
+    prompt: string,
+    isRefine = false,
+    customThemeOrImages?: ThemeConfig | string[],
+    imagesArg?: string[]
+  ) => {
+    let customTheme: ThemeConfig | undefined = undefined;
+    let images: string[] | undefined = undefined;
 
-    // Run realistic multi-stage AI generation progress sequence
-    const totalDurationMs = 35000; // ~35 seconds realistic generation time
-    const stepMs = 500;
+    if (Array.isArray(customThemeOrImages)) {
+      images = customThemeOrImages;
+    } else {
+      customTheme = customThemeOrImages;
+      images = imagesArg;
+    }
+
+    setIsLoading(true);
+    setGenerationProgress(10);
+    setGenerationStage('🔍 Analyzing natural language prompt & updating layout...');
+
+    // Fast progress sequence (1.5 seconds)
+    const totalDurationMs = 1500;
+    const stepMs = 250;
     const steps = totalDurationMs / stepMs;
-    let currentProgress = 5;
+    let currentProgress = 10;
 
     for (let i = 0; i < steps; i++) {
       await new Promise(resolve => setTimeout(resolve, stepMs));
-      currentProgress += (92 - 5) / steps;
-      setGenerationProgress(Math.min(95, Math.round(currentProgress)));
-
-      if (currentProgress < 25) {
-        setGenerationStage('🔍 Analyzing natural language prompt & domain intent...');
-      } else if (currentProgress < 50) {
-        setGenerationStage('🧠 Synthesizing dynamic UI layout tree & component specs...');
-      } else if (currentProgress < 75) {
-        setGenerationStage('🖼️ Resolving high-res topic photography & Tailwind v4 tokens...');
-      } else {
-        setGenerationStage('🎨 Compiling React 19 JSX widgets, Recharts graphs & tables...');
-      }
+      currentProgress += (90 - 10) / steps;
+      setGenerationProgress(Math.min(92, Math.round(currentProgress)));
     }
 
     setGenerationProgress(100);
@@ -513,7 +802,7 @@ export default function App() {
 
       let data: any = null;
       try {
-        const response = await fetch('/api/generate-ui', {
+        const reqPayload = {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -521,10 +810,20 @@ export default function App() {
             currentSchema: isRefine && currentSchema ? currentSchema : undefined,
             action: isRefine ? 'refine' : 'generate',
             theme: customTheme,
-            model: selectedModel
+            model: selectedModel,
+            images
           }),
           signal: controller.signal
-        });
+        };
+
+        let response = await fetch('/api/generate-ui', reqPayload);
+        const contentType = response.headers.get('content-type') || '';
+        
+        // If relative fetch returned HTML fallback page, attempt direct server connection to port 3001
+        if (!response.ok || contentType.includes('text/html')) {
+          response = await fetch('http://localhost:3001/api/generate-ui', reqPayload);
+        }
+
         clearTimeout(timeoutId);
         if (response.ok) {
           data = await response.json();
@@ -553,21 +852,110 @@ export default function App() {
         (prompt.toLowerCase().includes('remind') && !currentSchema.generatedPrompt?.toLowerCase().includes('remind'))
       );
 
+function mergeSchemas(currentSchema: DynamicUISchema, newSchema: DynamicUISchema, promptText: string): DynamicUISchema {
+  const merged: DynamicUISchema = JSON.parse(JSON.stringify(currentSchema));
+  
+  if (newSchema.theme) {
+    merged.theme = {
+      ...(merged.theme || {}),
+      ...newSchema.theme
+    };
+  }
+
+  // Ensure currentSchema layout is normalized
+  if (merged.layout && !Array.isArray(merged.layout)) {
+    merged.layout = typeof merged.layout === 'object' ? [merged.layout as any] : [];
+  }
+  if (!merged.layout) merged.layout = [];
+
+  // Ensure newSchema layout is normalized
+  if (newSchema && newSchema.layout) {
+    if (!Array.isArray(newSchema.layout)) {
+      newSchema.layout = typeof newSchema.layout === 'object' ? [newSchema.layout as any] : [];
+    }
+  }
+
+  if (newSchema.metrics && newSchema.metrics.length > 0) {
+    const existingMetricIds = new Set((merged.metrics || []).map(m => m.id || m.label));
+    const newMetricsToAdd = newSchema.metrics.filter(m => !existingMetricIds.has(m.id || m.label));
+    merged.metrics = [...(merged.metrics || []), ...newMetricsToAdd];
+  }
+
+  if (newSchema.layout && newSchema.layout.length > 0) {
+    const promptLower = promptText.toLowerCase();
+    const isExplicitReset = promptLower.includes('start over') || promptLower.includes('reset canvas') || promptLower.includes('clear all');
+    
+    if (isExplicitReset) {
+      merged.layout = newSchema.layout;
+    } else {
+      newSchema.layout.forEach(newSec => {
+        if (!newSec) return;
+        const matchingSec = merged.layout.find(s => s && s.title && newSec.title && s.title.toLowerCase() === newSec.title.toLowerCase());
+        if (matchingSec) {
+          if (!Array.isArray(matchingSec.components)) {
+            matchingSec.components = [];
+          }
+          const existingCompIds = new Set(matchingSec.components.filter(c => c).map(c => c.id));
+          (newSec.components || []).forEach(comp => {
+            if (comp && !existingCompIds.has(comp.id)) {
+              matchingSec.components.push(comp);
+            }
+          });
+        } else {
+          merged.layout.push(newSec);
+        }
+      });
+    }
+  }
+
+  if (newSchema.operationsLayout && newSchema.operationsLayout.length > 0) {
+    if (!merged.operationsLayout) merged.operationsLayout = [];
+    if (!Array.isArray(merged.operationsLayout)) {
+      merged.operationsLayout = typeof merged.operationsLayout === 'object' ? [merged.operationsLayout] : [];
+    }
+    const newOpsLayout = Array.isArray(newSchema.operationsLayout) ? newSchema.operationsLayout : [newSchema.operationsLayout];
+    newOpsLayout.forEach(opsSec => {
+      if (opsSec) {
+        merged.operationsLayout!.push(opsSec);
+      }
+    });
+  }
+
+  merged.description = `${merged.description} • Refined: "${promptText}"`;
+  if (newSchema.assistantMessage) {
+    merged.assistantMessage = newSchema.assistantMessage;
+  }
+
+  return merged;
+}
+
       if (data && data.schema) {
-        resultSchema = data.schema;
+        if (isRefine && currentSchema && !isDomainChange) {
+          resultSchema = mergeSchemas(currentSchema, data.schema, prompt);
+        } else {
+          resultSchema = data.schema;
+        }
         resultSchema.title = cleanAndTrimTitle(resultSchema.title, prompt);
+        resultSchema.connectionMode = data.connectionMode || 'gemini';
+        resultSchema.fallbackError = data.error;
       } else if (isRefine && currentSchema && !isDomainChange) {
-        resultSchema = refineSchemaLocally(currentSchema, prompt);
+        resultSchema = refineSchemaLocally(currentSchema, prompt, activeSubTab);
+        resultSchema.connectionMode = currentSchema.connectionMode;
+        resultSchema.fallbackError = currentSchema.fallbackError;
       } else if (selectedTemplate && selectedTemplate.schema && !isDomainChange) {
         resultSchema = {
           ...selectedTemplate.schema,
           id: `schema_${Date.now()}`,
           generatedPrompt: prompt,
           title: selectedTemplate.title,
-          description: selectedTemplate.description || `Generated from template "${selectedTemplate.title}"`
+          description: selectedTemplate.description || `Generated from template "${selectedTemplate.title}"`,
+          connectionMode: 'fallback',
+          fallbackError: 'Generated from pre-defined local template.'
         };
       } else {
         resultSchema = generateDynamicDomainSchema(prompt, customTheme);
+        resultSchema.connectionMode = 'fallback';
+        resultSchema.fallbackError = 'API server is not responding. Using local schema synthesizer fallback.';
       }
 
       if (customTheme) {
@@ -589,10 +977,13 @@ export default function App() {
         };
       }
 
+      // Universal Visual Enforcer: Guarantee Hero Banners, Category Pill Grids, Visual Cards & Menus for EVERY prompt
+      resultSchema = ensureRichVisualComponents(resultSchema, prompt);
+
       const assistantReply: ChatMessage = {
         id: `msg_a_${Date.now()}`,
         role: 'assistant',
-        content: `I've updated the UI schema for: "${prompt}". Applied components and layout updates to the preview canvas.`,
+        content: resultSchema.assistantMessage || `I've updated the UI schema for: "${prompt}". Applied components and layout updates to the preview canvas.`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         sectionsUpdated: resultSchema.layout?.length || 2
       };
@@ -855,7 +1246,7 @@ export default function App() {
                         const isMobile = previewDevice === 'mobile';
 
                         const frameContainerClass = isDesktop
-                          ? 'w-full max-w-6xl my-4 transition-all duration-300'
+                          ? 'w-full max-w-[1440px] my-4 transition-all duration-300'
                           : isTablet
                           ? 'w-[768px] h-[920px] border-[10px] border-zinc-900 dark:border-zinc-800 rounded-[28px] shadow-2xl overflow-hidden shrink-0 transition-all duration-300 my-6 bg-white dark:bg-zinc-950'
                           : 'w-[375px] h-[720px] border-[12px] border-zinc-950 dark:border-zinc-850 rounded-[44px] shadow-2xl overflow-hidden shrink-0 relative transition-all duration-300 my-8 bg-zinc-950';
@@ -865,20 +1256,9 @@ export default function App() {
                         const schemaId = (activeRenderSchema?.id || '').toLowerCase();
 
                         const isFoodApp = 
-                          categoryStr.includes('food') ||
-                          categoryStr.includes('dining') ||
-                          categoryStr.includes('restaurant') ||
-                          schemaId.startsWith('foodrush') ||
-                          promptOrTitle.includes('food') ||
-                          promptOrTitle.includes('restaurant') ||
-                          promptOrTitle.includes('swiggy') ||
-                          promptOrTitle.includes('zomato') ||
-                          promptOrTitle.includes('foodrush') ||
-                          promptOrTitle.includes('food-delivery') ||
-                          promptOrTitle.includes('pizza') ||
-                          promptOrTitle.includes('burger') ||
-                          promptOrTitle.includes('biryani') ||
-                          promptOrTitle.includes('gourmet');
+                          schemaId === 'foodrush_delivery' ||
+                          promptOrTitle.includes('foodrush app') ||
+                          promptOrTitle.includes('swiggy app');
 
                         if (isFoodApp) {
                           return (
@@ -891,17 +1271,9 @@ export default function App() {
                         }
 
                         const isRideApp = 
-                          categoryStr.includes('ride') ||
-                          categoryStr.includes('transport') ||
-                          categoryStr.includes('cab') ||
-                          categoryStr.includes('taxi') ||
-                          schemaId.startsWith('ridex') ||
-                          promptOrTitle.includes('ride') ||
-                          promptOrTitle.includes('ridex') ||
-                          promptOrTitle.includes('uber') ||
-                          promptOrTitle.includes('cab') ||
-                          promptOrTitle.includes('taxi') ||
-                          promptOrTitle.includes('driver');
+                          schemaId === 'ridex_mobility' ||
+                          promptOrTitle.includes('ridex app') ||
+                          promptOrTitle.includes('uber app');
 
                         if (isRideApp) {
                           return (
@@ -914,14 +1286,8 @@ export default function App() {
                         }
 
                         const isReminderApp = 
-                          categoryStr.includes('reminder') ||
-                          categoryStr.includes('alarm') ||
-                          schemaId.startsWith('remindme') ||
-                          promptOrTitle.includes('remindme') ||
-                          promptOrTitle.includes('remind me') ||
-                          promptOrTitle.includes('smart alarm') ||
-                          promptOrTitle.includes('reminder app') ||
-                          promptOrTitle.includes('alarm app');
+                          schemaId === 'remindme_app' ||
+                          promptOrTitle.includes('remindme app');
 
                         if (isReminderApp) {
                           return (
@@ -934,15 +1300,8 @@ export default function App() {
                         }
 
                         const isHotelApp = 
-                          categoryStr.includes('hotel') ||
-                          categoryStr.includes('resort') ||
-                          categoryStr.includes('villa') ||
-                          schemaId.startsWith('hotel') ||
-                          promptOrTitle.includes('hotel') ||
-                          promptOrTitle.includes('resort') ||
-                          promptOrTitle.includes('villa') ||
-                          promptOrTitle.includes('stay') ||
-                          promptOrTitle.includes('suite');
+                          schemaId === 'hotellux_app' ||
+                          promptOrTitle.includes('hotellux app');
 
                         if (isHotelApp) {
                           return (
@@ -956,126 +1315,739 @@ export default function App() {
 
 
 
+                        const sidebarLinks = getSidebarLinks(activeRenderSchema);
                         const innerContent = (
-                          <div className={`flex flex-col ${isDesktop ? 'w-full min-h-[655px] rounded-2xl border shadow-sm' : 'h-full w-full'} ${canvasStyles.cardBgClass} ${canvasStyles.cardBorderClass} overflow-hidden`}>
-                            {/* 1. Top Navbar Mockup */}
-                            <div className={`px-4 py-3 border-b ${canvasStyles.dividerBorderClass} flex items-center justify-between shrink-0 bg-white/80 dark:bg-[#111827]/80 backdrop-blur-md z-20`}>
-                              <div className="flex items-center gap-3 min-w-0">
-                                {isMobile ? (
-                                  <button className="p-1 -ml-1 text-zinc-500 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 shrink-0">
-                                    <Menu className="w-4 h-4" />
-                                  </button>
-                                ) : null}
-                                <div className="flex items-center gap-2 shrink-0">
-                                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: canvasStyles.primaryColorHex }} />
-                                  <span className={`text-xs font-extrabold tracking-tight ${canvasStyles.textPrimaryClass}`}>
-                                    {(activeRenderSchema?.title || 'App').split(' ')[0]}Suite
-                                  </span>
+                          <div className={`flex flex-col relative ${isDesktop ? 'w-full min-h-[680px] rounded-2xl border shadow-sm' : 'h-full w-full'} ${canvasStyles.cardBgClass} ${canvasStyles.cardBorderClass} overflow-hidden`}>
+                            {isLoading && (
+                              <div className="absolute inset-0 bg-white/40 dark:bg-black/45 backdrop-blur-[1px] z-[50] flex items-center justify-center pointer-events-none">
+                                <div className="bg-white/95 dark:bg-zinc-900/95 border border-zinc-200/80 dark:border-zinc-800 shadow-md px-4 py-2 rounded-full flex items-center gap-2">
+                                  <Loader2 className="w-3.5 h-3.5 text-emerald-650 animate-spin" />
+                                  <span className="text-[11px] font-bold text-zinc-750 dark:text-zinc-250">Updating preview canvas...</span>
                                 </div>
-                                {!isMobile && (
-                                  <nav className="flex items-center gap-4 text-[10px] font-bold text-zinc-500 ml-4 shrink-0">
-                                    <span
-                                      onClick={() => setActiveSubTab('dashboard')}
-                                      className={`cursor-pointer transition-colors ${activeSubTab === 'dashboard' ? canvasStyles.textPrimaryClass : 'hover:text-zinc-900 dark:hover:text-zinc-200'}`}
-                                    >
-                                      Overview
-                                    </span>
-                                    <span
-                                      onClick={() => setActiveSubTab('operations')}
-                                      className={`cursor-pointer transition-colors ${activeSubTab === 'operations' ? canvasStyles.textPrimaryClass : 'hover:text-zinc-900 dark:hover:text-zinc-200'}`}
-                                    >
-                                      Operations
-                                    </span>
-                                    <span
-                                      onClick={() => setActiveSubTab('analytics')}
-                                      className={`cursor-pointer transition-colors ${activeSubTab === 'analytics' ? canvasStyles.textPrimaryClass : 'hover:text-zinc-900 dark:hover:text-zinc-200'}`}
-                                    >
-                                      Analytics
-                                    </span>
-                                  </nav>
-                                )}
                               </div>
+                            )}
 
-                              <div className="flex items-center gap-2.5 shrink-0">
-                                {!isMobile && (
-                                  <div className="relative w-28 md:w-36">
-                                    <Search className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 text-zinc-400" />
-                                    <input
-                                      type="text"
-                                      disabled
-                                      placeholder="⌘K Search..."
-                                      className={`w-full ${canvasStyles.inputBgClass} border ${canvasStyles.inputBorderClass} rounded-lg pl-6 pr-2 py-0.5 text-[9px] focus:outline-none placeholder-zinc-400`}
-                                    />
+                            {/* Unified Top Application Header Bar — Single Continuous Horizontal Line Across Full Width */}
+                            <div className={`px-5 py-3.5 border-b ${canvasStyles.dividerBorderClass} flex items-center justify-between gap-4 shrink-0 ${canvasStyles.subCardBgClass} ${isMobile ? 'pt-7' : ''}`}>
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className={`w-8 h-8 rounded-xl ${canvasStyles.accentBgClass} text-white flex items-center justify-center font-black text-sm shadow-sm shrink-0`}>
+                                  {(activeRenderSchema.title || 'A').charAt(0).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <h2 className={`text-sm sm:text-base font-extrabold tracking-tight ${canvasStyles.textPrimaryClass} truncate`}>
+                                      {(() => {
+                                        const rawTitle = (activeRenderSchema.title || '').replace(/[\*\#\`\_]+/g, '').trim();
+                                        const parts = rawTitle.split(/\s+[\-\:\|\—\–]\s+/);
+                                        if (parts.length > 0 && parts[0].trim().length > 0) {
+                                          return parts[0].trim();
+                                        }
+                                        const partsFallback = rawTitle.split(/[\-\:\|\—\–]/);
+                                        if (partsFallback.length > 0 && partsFallback[0].trim().length > 0) {
+                                          return partsFallback[0].trim();
+                                        }
+                                        return rawTitle;
+                                      })()}
+                                    </h2>
+                                    <span className="hidden sm:inline-flex px-2 py-0.5 rounded-md border border-zinc-200 dark:border-zinc-800 text-[10px] font-mono font-semibold uppercase text-zinc-400 shrink-0">
+                                      {activeRenderSchema.category || 'App Workspace'}
+                                    </span>
                                   </div>
-                                )}
-                                <button className={`p-1 text-zinc-500 hover:${canvasStyles.textPrimaryClass} rounded-lg relative`}>
-                                  <Bell className="w-3.5 h-3.5" />
-                                  <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-rose-500" />
-                                </button>
-                                <div className={`w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-[10px] font-bold flex items-center justify-center ${canvasStyles.textPrimaryClass}`}>
-                                  U
+                                  <p className={`text-[10px] sm:text-xs ${canvasStyles.textSecondaryClass} max-w-2xl mt-0.5 leading-relaxed`}>
+                                    {activeRenderSchema.description}
+                                  </p>
                                 </div>
                               </div>
                             </div>
 
-                            {/* 2. Main Area: Sidebar + Scrollable Content */}
-                            <div className="flex flex-1 min-h-0 bg-[#fafafa] dark:bg-[#0b0f19]">
-                              {/* Left Side Navigation Menu */}
-                              {!isMobile && (
-                                  <aside className={`w-14 sm:w-40 border-r ${canvasStyles.dividerBorderClass} p-3 flex flex-col justify-between ${canvasStyles.subCardBgClass} text-[10px] font-bold text-zinc-500 shrink-0`}>
-                                    <div className="space-y-1">
-                                      {getSidebarLinks(activeRenderSchema).map((link) => (
-                                        <div
-                                          key={link.label}
+                            {/* Main Body: Sidebar + Content Viewport */}
+                            <div className={`flex ${isDesktop ? 'flex-row' : 'flex-col'} flex-1 min-h-0 overflow-hidden`}>
+                              {/* On Mobile Device Frame: Mobile Navigation Pill Bar */}
+                              {isMobile && sidebarLinks && sidebarLinks.length > 0 && (
+                                <div className={`px-3 py-2 border-b ${canvasStyles.dividerBorderClass} flex items-center justify-between gap-2 overflow-x-auto shrink-0 ${canvasStyles.subCardBgClass}`}>
+                                  <div className="flex items-center gap-1.5 overflow-x-auto w-full">
+                                    {sidebarLinks.map(link => {
+                                      const isActive = activeSubTab === link.tabId;
+                                      return (
+                                        <button
+                                          key={link.tabId}
                                           onClick={() => setActiveSubTab(link.tabId as any)}
-                                          className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors ${
-                                            activeSubTab === link.tabId
-                                              ? `bg-zinc-150/40 text-zinc-900 dark:bg-zinc-850/40 dark:text-zinc-100 shadow-3xs`
-                                              : `hover:text-zinc-950 dark:hover:text-zinc-200`
+                                          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all shrink-0 cursor-pointer ${
+                                            isActive
+                                              ? `${canvasStyles.accentBgClass} text-white shadow-2xs`
+                                              : `${canvasStyles.textSecondaryClass} hover:${canvasStyles.textPrimaryClass} hover:bg-zinc-500/10`
                                           }`}
                                         >
-                                          <DynamicIcon name={link.icon} className="w-3.5 h-3.5 opacity-80 shrink-0" />
-                                          <span className="hidden sm:inline">{link.label}</span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                    <div className="px-2 py-1 text-[9px] text-zinc-400 font-mono tracking-tight hidden sm:block">
-                                      v1.0.4 • API OK
-                                    </div>
-                                  </aside>
-                                )}
+                                          <DynamicIcon name={link.icon} className="w-3.5 h-3.5" />
+                                          <span>{link.label}</span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
 
-                              {/* 3. Dashboard Scrollable Viewport */}
-                              <div className={`flex-1 overflow-y-auto ${isDesktop ? 'p-6 sm:p-8' : isTablet ? 'p-6' : 'p-4'} space-y-6 ${canvasStyles.containerBgClass}`}>
-                                <AnimatePresence mode="wait">
-                                  <motion.div
-                                    key={activeRenderSchema.id}
-                                    initial={{ opacity: 0, y: 12 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -12 }}
-                                    transition={{ duration: 0.25 }}
-                                    className="space-y-6 pb-16"
-                                  >
-                                    {activeSubTab === 'dashboard' && (
-                                      <>
-                                        {/* Dashboard Section Header */}
-                                        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b ${canvasStyles.dividerBorderClass} pb-4`}>
-                                          <div>
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                              <h1 className={`text-base md:text-lg font-extrabold tracking-tight ${canvasStyles.textPrimaryClass}`}>
-                                                {(activeRenderSchema.title || '').replace(/[\*\#\`\_]+/g, '').trim()}
-                                              </h1>
-                                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${canvasStyles.accentBadgeClass} shrink-0`}>
-                                                v1.0.0
-                                              </span>
-                                            </div>
-                                            <p className={`text-xs ${canvasStyles.textSecondaryClass} mt-0.5`}>
-                                              {activeRenderSchema.description}
-                                            </p>
+                              {/* On Desktop & Tablet: Left Vertical App Sidebar */}
+                              {!isMobile && sidebarLinks && sidebarLinks.length > 0 && (
+                                <aside className={`w-52 lg:w-60 border-r ${canvasStyles.dividerBorderClass} ${canvasStyles.subCardBgClass} flex flex-col shrink-0 select-none`}>
+                                  {/* Sidebar Navigation Items */}
+                                  <div className="p-3 space-y-1 flex-1 overflow-y-auto">
+                                    <div className="text-[9px] font-bold uppercase tracking-wider text-zinc-400 px-3 py-1.5 mb-0.5">
+                                      Menu & Modules
+                                    </div>
+                                    {sidebarLinks.map(link => {
+                                      const isActive = activeSubTab === link.tabId;
+                                      return (
+                                        <button
+                                          key={link.tabId}
+                                          onClick={() => setActiveSubTab(link.tabId as any)}
+                                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                                            isActive
+                                              ? `${canvasStyles.accentBgClass} text-white shadow-xs`
+                                              : `${canvasStyles.textSecondaryClass} hover:${canvasStyles.textPrimaryClass} hover:bg-zinc-500/10`
+                                          }`}
+                                        >
+                                          <DynamicIcon name={link.icon} className="w-3.5 h-3.5 shrink-0" />
+                                          <span className="truncate">{link.label}</span>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+
+                                  {/* Sidebar Footer Info */}
+                                  <div className={`p-3 border-t ${canvasStyles.dividerBorderClass} text-[10px]`}>
+                                    <div className="flex items-center justify-between text-zinc-400 font-mono">
+                                      <span>Status:</span>
+                                      <span className="text-emerald-500 font-bold flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                        Live Workspace
+                                      </span>
+                                    </div>
+                                  </div>
+                                </aside>
+                              )}
+
+                      {/* Main Scrollable Viewport */}
+                              {(() => {
+                                const navLinks = sidebarLinks || [];
+                                const tab1Id = navLinks[0]?.tabId || 'dashboard';
+                                const tab2Id = navLinks[1]?.tabId || 'operations';
+                                const tab3Id = navLinks[2]?.tabId || 'analytics';
+                                const tab4Id = navLinks[3]?.tabId || 'settings';
+
+                                const isOpsTab = activeSubTab !== tab1Id && (activeSubTab === 'operations' || activeSubTab === tab2Id);
+                                const isAnalyticsTab = activeSubTab !== tab1Id && (activeSubTab === 'analytics' || activeSubTab === tab3Id);
+
+                                // Detect settings/billing/account type tabs by tabId or label
+                                const activeTabLabel = (navLinks.find(l => l.tabId === activeSubTab)?.label || '').toLowerCase();
+                                const isSettingsTab = activeSubTab !== tab1Id && (
+                                  activeSubTab === 'settings' || activeSubTab === tab4Id ||
+                                  activeSubTab.includes('setting') || activeSubTab.includes('billing') || activeSubTab.includes('account') ||
+                                  activeTabLabel.includes('setting') || activeTabLabel.includes('billing') || activeTabLabel.includes('account')
+                                );
+
+                                const isDashboardTab = activeSubTab === tab1Id || (!isOpsTab && !isAnalyticsTab && !isSettingsTab);
+
+                                const getSectionTargetTab = (secTitle: string = '') => {
+                                  const t = secTitle.toLowerCase();
+                                  if (t.includes('setting') || t.includes('account') || t.includes('profile') || t.includes('preference')) return 'settings';
+                                  if (t.includes('analytic') || t.includes('metric') || t.includes('chart') || t.includes('statistic') || t.includes('performance') || t.includes('insight') || t.includes('report') || t.includes('data')) return 'analytics';
+                                  if (t.includes('operation') || t.includes('admin') || t.includes('task') || t.includes('kanban')) return 'operations';
+                                  return 'dashboard';
+                                };
+
+                                return (
+                                  <div className={`flex-1 min-h-0 overflow-y-auto ${isDesktop ? 'p-6 sm:p-8' : isTablet ? 'p-6' : 'p-3 sm:p-4'} space-y-6 ${canvasStyles.containerBgClass}`}>
+                                    <div className="space-y-6 pb-16">
+                                        {isDashboardTab && (
+                                          <div className="space-y-8">
+                                            {/* Visual Landing Showcase — charts/tables excluded, they go to Analytics tab */}
+                                            {(activeRenderSchema?.layout || []).map(section => {
+                                              if (getSectionTargetTab(section.title) !== 'dashboard') return null;
+
+                                              let visualComps = (section?.components || []).filter(c =>
+                                                c && c.type !== 'chart' && c.type !== 'calculator' && c.type !== 'kanban'
+                                              );
+                                              
+                                              if (visualComps.length === 0) return null;
+                                              return (
+                                                <div key={section.id} className="space-y-3">
+                                                  {section.title && (
+                                                    <h3 className={`text-xs font-semibold uppercase tracking-wider flex items-center gap-2 ${canvasStyles.textSecondaryClass}`}>
+                                                      <LayoutGrid className="w-3.5 h-3.5 opacity-60" />
+                                                      {section.title}
+                                                    </h3>
+                                                  )}
+                                                  <div className={`grid grid-cols-1 ${
+                                                    isMobile ? 'grid-cols-1'
+                                                    : section.gridCols === 2 ? 'lg:grid-cols-2'
+                                                    : section.gridCols === 3 ? 'lg:grid-cols-3'
+                                                    : 'grid-cols-1'
+                                                  } ${canvasStyles.densityGapClass}`}>
+                                                    {visualComps.map(comp => (
+                                                      <ComponentRenderer
+                                                        key={comp.id}
+                                                        component={comp}
+                                                        theme={activeRenderSchema.theme}
+                                                        onStateChange={handleStateChange}
+                                                        device={previewDevice}
+                                                      />
+                                                    ))}
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
                                           </div>
-                                          <button className={`px-3 py-1.5 text-[10px] font-bold ${canvasStyles.accentBgClass} rounded-lg shadow-2xs hover:opacity-90 transition-all shrink-0 cursor-pointer`}>
-                                            + Add Widget
-                                          </button>
+                                        )}
+
+                                     {isAnalyticsTab && (
+                                       <>
+                                         {/* Analytics Section Header */}
+                                         <div className={`flex flex-col border-b ${canvasStyles.dividerBorderClass} pb-4`}>
+                                           <h1 className={`text-base md:text-lg font-extrabold tracking-tight ${canvasStyles.textPrimaryClass}`}>
+                                              {sidebarLinks.find(link => link.tabId === 'analytics')?.label || 'Performance Analytics'}
+                                           </h1>
+                                           <p className={`text-xs ${canvasStyles.textSecondaryClass} mt-0.5`}>
+                                              Deep-dive { (sidebarLinks.find(link => link.tabId === 'analytics')?.label || 'Analytics').toLowerCase() } trends, historical stats, and charts.
+                                           </p>
+                                         </div>
+
+                                         {/* KPI Metrics */}
+                                         {activeRenderSchema.metrics && activeRenderSchema.metrics.length > 0 && (
+                                           <MetricsBar metrics={activeRenderSchema.metrics} theme={activeRenderSchema.theme} device={previewDevice} />
+                                         )}
+
+                                         {/* Section Grid: Analytics Controls & Calculators */}
+                                         <div className="space-y-8">
+                                           {(() => {
+                                             const analyticsSections = activeRenderSchema?.analyticsLayout && activeRenderSchema.analyticsLayout.length > 0
+                                               ? activeRenderSchema.analyticsLayout
+                                               : (activeRenderSchema?.layout || []).filter(sec => {
+                                                   if (getSectionTargetTab(sec.title) === 'analytics') return true;
+                                                   const comps = sec.components || [];
+                                                   return comps.length > 0 && comps.every(c => c.type === 'chart' || c.type === 'calculator');
+                                                 });
+                                             
+                                             if (analyticsSections && analyticsSections.length > 0) {
+                                               return analyticsSections.map(section => (
+                                                 <div key={section.id} className="space-y-3">
+                                                   {section.title && (
+                                                     <h3 className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${canvasStyles.textSecondaryClass}`}>
+                                                       <TrendingUp className="w-3.5 h-3.5 opacity-60 text-sky-500" />
+                                                       {section.title}
+                                                     </h3>
+                                                   )}
+                                                   <div
+                                                     className={`grid grid-cols-1 ${
+                                                       isMobile 
+                                                         ? 'grid-cols-1' 
+                                                         : section.gridCols === 2 
+                                                         ? 'lg:grid-cols-2' 
+                                                         : section.gridCols === 3 
+                                                         ? 'lg:grid-cols-3' 
+                                                         : 'grid-cols-1'
+                                                     } ${canvasStyles.densityGapClass}`}
+                                                   >
+                                                     {(section?.components || []).map(comp => (
+                                                       <ComponentRenderer 
+                                                         key={comp.id} 
+                                                         component={comp} 
+                                                         theme={activeRenderSchema.theme} 
+                                                         onStateChange={handleStateChange}
+                                                         device={previewDevice}
+                                                       />
+                                                     ))}
+                                                   </div>
+                                                 </div>
+                                               ));
+                                             }
+
+                                             // Fallback Analytics Dashboard
+                                             const appTitle = activeRenderSchema.title || 'Application';
+                                             return (
+                                               <div className="space-y-5">
+                                                 {/* KPI Row */}
+                                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                                   {[
+                                                     { label: 'Total Users', val: '24,831', delta: '+12.4%', color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+                                                     { label: 'Active Sessions', val: '1,204', delta: '+5.2%', color: 'text-sky-500', bg: 'bg-sky-500/10' },
+                                                     { label: 'Avg. Session Time', val: '18m 42s', delta: '+2.1%', color: 'text-violet-500', bg: 'bg-violet-500/10' },
+                                                     { label: 'Satisfaction Score', val: '94.7%', delta: '+0.8%', color: 'text-amber-500', bg: 'bg-amber-500/10' }
+                                                   ].map((kpi, i) => (
+                                                     <div key={i} className={`p-4 rounded-xl border ${canvasStyles.cardBgClass} ${canvasStyles.cardBorderClass} ${canvasStyles.cardShadowClass} space-y-1.5`}>
+                                                       <div className={`text-[10px] font-semibold ${canvasStyles.textSecondaryClass}`}>{kpi.label}</div>
+                                                       <div className={`text-xl font-black ${canvasStyles.textPrimaryClass}`}>{kpi.val}</div>
+                                                       <div className={`text-[9px] font-bold ${kpi.color} ${kpi.bg} px-1.5 py-0.5 rounded-full w-fit`}>{kpi.delta} this week</div>
+                                                     </div>
+                                                   ))}
+                                                 </div>
+
+                                                 {/* Bar Chart Visualization */}
+                                                 <div className={`p-5 rounded-xl border ${canvasStyles.cardBgClass} ${canvasStyles.cardBorderClass} ${canvasStyles.cardShadowClass} space-y-3`}>
+                                                   <div className="flex items-center justify-between">
+                                                     <div>
+                                                       <h3 className={`text-xs font-bold uppercase tracking-wider ${canvasStyles.textPrimaryClass}`}>Weekly Activity Overview</h3>
+                                                       <p className={`text-[10px] ${canvasStyles.textSecondaryClass}`}>Daily engagement across {appTitle}</p>
+                                                     </div>
+                                                     <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">▲ Trending Up</span>
+                                                   </div>
+                                                   <div className="flex items-end gap-2 h-24 pt-2">
+                                                     {[65, 82, 58, 91, 74, 88, 96].map((h, i) => (
+                                                       <div key={i} className="flex-1 flex flex-col items-center gap-1 h-full">
+                                                         <div className="w-full h-16 flex items-end">
+                                                           <div
+                                                             className={`w-full rounded-t-md ${canvasStyles.accentBgClass} opacity-80 transition-all hover:opacity-100`}
+                                                             style={{ height: `${h}%` }}
+                                                           />
+                                                         </div>
+                                                         <span className="text-[8px] text-zinc-400 shrink-0 select-none">{['M','T','W','T','F','S','S'][i]}</span>
+                                                       </div>
+                                                     ))}
+                                                   </div>
+                                                 </div>
+
+                                                 {/* Pie Chart + Top Actions */}
+                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                   <div className={`p-5 rounded-xl border ${canvasStyles.cardBgClass} ${canvasStyles.cardBorderClass} ${canvasStyles.cardShadowClass} space-y-3`}>
+                                                     <h3 className={`text-xs font-bold uppercase tracking-wider ${canvasStyles.textPrimaryClass}`}>Usage Distribution</h3>
+                                                     <div className="flex items-center gap-4">
+                                                       <div className="relative w-20 h-20 shrink-0">
+                                                         <svg viewBox="0 0 36 36" className="w-20 h-20 -rotate-90">
+                                                           <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e5e7eb" strokeWidth="3" />
+                                                           <circle cx="18" cy="18" r="15.9" fill="none" stroke="#f59e0b" strokeWidth="3" strokeDasharray="42 58" strokeDashoffset="0" />
+                                                           <circle cx="18" cy="18" r="15.9" fill="none" stroke="#6366f1" strokeWidth="3" strokeDasharray="30 70" strokeDashoffset="-42" />
+                                                           <circle cx="18" cy="18" r="15.9" fill="none" stroke="#10b981" strokeWidth="3" strokeDasharray="28 72" strokeDashoffset="-72" />
+                                                         </svg>
+                                                         <div className="absolute inset-0 flex items-center justify-center">
+                                                           <span className={`text-[9px] font-bold ${canvasStyles.textPrimaryClass}`}>100%</span>
+                                                         </div>
+                                                       </div>
+                                                       <div className="space-y-1.5 flex-1">
+                                                         {[['Mobile', '42%', 'bg-amber-400'],['Desktop', '30%', 'bg-indigo-500'],['Tablet', '28%', 'bg-emerald-500']].map(([lbl, pct, clr], i) => (
+                                                           <div key={i} className="flex items-center justify-between">
+                                                             <div className="flex items-center gap-1.5">
+                                                               <div className={`w-2 h-2 rounded-sm ${clr}`} />
+                                                               <span className={`text-[10px] ${canvasStyles.textSecondaryClass}`}>{lbl}</span>
+                                                             </div>
+                                                             <span className={`text-[10px] font-bold ${canvasStyles.textPrimaryClass}`}>{pct}</span>
+                                                           </div>
+                                                         ))}
+                                                       </div>
+                                                     </div>
+                                                   </div>
+
+                                                   <div className={`p-5 rounded-xl border ${canvasStyles.cardBgClass} ${canvasStyles.cardBorderClass} ${canvasStyles.cardShadowClass} space-y-3`}>
+                                                     <h3 className={`text-xs font-bold uppercase tracking-wider ${canvasStyles.textPrimaryClass}`}>Recent Activity</h3>
+                                                     <div className="space-y-2">
+                                                       {[
+                                                         { action: 'New user registered', time: '2m ago', dot: 'bg-emerald-400' },
+                                                         { action: 'Data export completed', time: '14m ago', dot: 'bg-sky-400' },
+                                                         { action: 'Report generated', time: '1h ago', dot: 'bg-amber-400' },
+                                                         { action: 'Settings updated', time: '3h ago', dot: 'bg-violet-400' },
+                                                       ].map((ev, i) => (
+                                                         <div key={i} className="flex items-center gap-2">
+                                                           <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${ev.dot}`} />
+                                                           <span className={`text-[10px] flex-1 ${canvasStyles.textPrimaryClass}`}>{ev.action}</span>
+                                                           <span className="text-[9px] text-zinc-400">{ev.time}</span>
+                                                         </div>
+                                                       ))}
+                                                     </div>
+                                                   </div>
+                                                 </div>
+                                               </div>
+                                             );
+                                           })()}
+                                         </div>
+                                       </>
+                                     )}
+
+                                     {isOpsTab && (
+                                       <>
+                                         {/* Operations Top Header & Command Toolbar */}
+                                         <div className={`flex flex-col md:flex-row md:items-center justify-between border-b ${canvasStyles.dividerBorderClass} pb-4 gap-4`}>
+                                           <div>
+                                             <div className="flex items-center gap-2">
+                                               <h1 className={`text-base md:text-lg font-extrabold tracking-tight ${canvasStyles.textPrimaryClass}`}>
+                                                 Operations & Execution Control
+                                               </h1>
+                                               <span className="px-2 py-0.5 rounded-md text-[9px] font-mono font-bold bg-amber-500/10 text-amber-600 border border-amber-500/20 uppercase">
+                                                 Live Ops Mode
+                                               </span>
+                                             </div>
+                                             <p className={`text-xs ${canvasStyles.textSecondaryClass} mt-0.5`}>
+                                               Dedicated workspace for task boards, system ledgers, automated workflows, and dispatch queues.
+                                             </p>
+                                           </div>
+
+                                           {/* Operational Toolbar Buttons */}
+                                           <div className="flex items-center gap-2 shrink-0">
+                                             <button
+                                               onClick={() => {
+                                                 const updated = refineSchemaLocally(activeRenderSchema, "Sync telemetry and trigger operational audit", 'operations');
+                                                 setCurrentSchema(updated);
+                                               }}
+                                               className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${canvasStyles.subCardBgClass} ${canvasStyles.subCardBorderClass} ${canvasStyles.textPrimaryClass} hover:border-zinc-400`}
+                                             >
+                                               <RefreshCw className="w-3.5 h-3.5 text-emerald-500 animate-spin" />
+                                               <span>Auto-Sync</span>
+                                             </button>
+                                             <button
+                                               onClick={() => {
+                                                 const updated = refineSchemaLocally(activeRenderSchema, "Trigger emergency operational diagnostic", 'operations');
+                                                 setCurrentSchema(updated);
+                                               }}
+                                               className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${canvasStyles.accentBgClass} text-white hover:opacity-90`}
+                                             >
+                                               <Zap className="w-3.5 h-3.5" />
+                                               <span>Run Diagnostics</span>
+                                             </button>
+                                           </div>
+                                         </div>
+
+                                         {/* Section Grid: Dedicated Operations Layout (Tables, Kanban, Action Lists, Forms) */}
+                                         <div className="space-y-8">
+                                           {(() => {
+                                             const opsLayout = activeRenderSchema?.operationsLayout && activeRenderSchema.operationsLayout.length > 0
+                                               ? activeRenderSchema.operationsLayout
+                                               : (activeRenderSchema?.layout || []).map(sec => {
+                                                   const opsComps = (sec?.components || []).filter(c => c && (c.type === 'table' || c.type === 'kanban' || c.type === 'action_list' || c.type === 'form' || c.type === 'alert'));
+                                                   return { ...sec, components: opsComps };
+                                                 }).filter(sec => sec.components.length > 0);
+
+                                             if (opsLayout.length > 0) {
+                                               return opsLayout.map(section => (
+                                                 <div key={section.id} className="space-y-3">
+                                                   {section.title && (
+                                                     <h3 className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${canvasStyles.textSecondaryClass}`}>
+                                                       <Layers className="w-3.5 h-3.5 opacity-60 text-amber-500" />
+                                                       {section.title}
+                                                     </h3>
+                                                   )}
+                                                   <div className="grid grid-cols-1 gap-6">
+                                                     {(section?.components || []).map(comp => (
+                                                       <ComponentRenderer 
+                                                         key={comp.id} 
+                                                         component={comp} 
+                                                         theme={activeRenderSchema.theme} 
+                                                         onStateChange={handleStateChange}
+                                                         device={previewDevice}
+                                                       />
+                                                     ))}
+                                                   </div>
+                                                 </div>
+                                               ));
+                                             }
+
+                                             // Fallback rich Operations workspace
+                                             return (
+                                               <div className="space-y-5">
+                                                 {/* KPI Row */}
+                                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                                   {[
+                                                     { label: 'Tasks Completed', val: '847', delta: '+23 today', color: 'text-emerald-500', bg: 'bg-emerald-500/10', icon: '✅' },
+                                                     { label: 'In Progress', val: '34', delta: '6 due soon', color: 'text-amber-500', bg: 'bg-amber-500/10', icon: '⏳' },
+                                                     { label: 'Pending Review', val: '12', delta: '↑ 3 new', color: 'text-sky-500', bg: 'bg-sky-500/10', icon: '🔍' },
+                                                     { label: 'Completion Rate', val: '96.1%', delta: '▲ Top 5%', color: 'text-violet-500', bg: 'bg-violet-500/10', icon: '🎯' }
+                                                   ].map((kpi, i) => (
+                                                     <div key={i} className={`p-4 rounded-xl border ${canvasStyles.cardBgClass} ${canvasStyles.cardBorderClass} ${canvasStyles.cardShadowClass} space-y-1.5`}>
+                                                       <div className="flex items-center gap-1.5">
+                                                         <span className="text-sm">{kpi.icon}</span>
+                                                         <div className={`text-[10px] font-semibold ${canvasStyles.textSecondaryClass}`}>{kpi.label}</div>
+                                                       </div>
+                                                       <div className={`text-xl font-black ${canvasStyles.textPrimaryClass}`}>{kpi.val}</div>
+                                                       <div className={`text-[9px] font-bold ${kpi.color} ${kpi.bg} px-1.5 py-0.5 rounded-full w-fit`}>{kpi.delta}</div>
+                                                     </div>
+                                                   ))}
+                                                 </div>
+
+                                                 {/* Progress Tracker */}
+                                                 <div className={`p-5 rounded-xl border ${canvasStyles.cardBgClass} ${canvasStyles.cardBorderClass} ${canvasStyles.cardShadowClass} space-y-3`}>
+                                                   <h3 className={`text-xs font-bold uppercase tracking-wider ${canvasStyles.textPrimaryClass}`}>Module Progress Tracker</h3>
+                                                   <div className="space-y-3">
+                                                     {[
+                                                       { name: 'Data Sync Pipeline', pct: 88, color: 'bg-emerald-500' },
+                                                       { name: 'User Onboarding Flow', pct: 65, color: 'bg-sky-500' },
+                                                       { name: 'API Integration', pct: 42, color: 'bg-amber-500' },
+                                                       { name: 'Report Generation', pct: 91, color: 'bg-violet-500' },
+                                                     ].map((item, i) => (
+                                                       <div key={i} className="space-y-1">
+                                                         <div className="flex justify-between">
+                                                           <span className={`text-[10px] font-semibold ${canvasStyles.textPrimaryClass}`}>{item.name}</span>
+                                                           <span className={`text-[10px] font-bold ${canvasStyles.textSecondaryClass}`}>{item.pct}%</span>
+                                                         </div>
+                                                         <div className={`h-1.5 rounded-full w-full ${canvasStyles.subCardBgClass} overflow-hidden`}>
+                                                           <div className={`h-full rounded-full ${item.color}`} style={{ width: `${item.pct}%` }} />
+                                                         </div>
+                                                       </div>
+                                                     ))}
+                                                   </div>
+                                                 </div>
+
+                                                 {/* Task Log + Assignments */}
+                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                   <div className={`p-5 rounded-xl border ${canvasStyles.cardBgClass} ${canvasStyles.cardBorderClass} ${canvasStyles.cardShadowClass} space-y-3`}>
+                                                     <h3 className={`text-xs font-bold uppercase tracking-wider ${canvasStyles.textPrimaryClass}`}>Live Task Log</h3>
+                                                     <div className="space-y-2">
+                                                       {[
+                                                         { time: '10:45', msg: 'Telemetry sync completed', status: 'success' },
+                                                         { time: '09:30', msg: 'DB backup verified', status: 'success' },
+                                                         { time: '08:15', msg: 'Queue processing started', status: 'info' },
+                                                         { time: '07:00', msg: 'Scheduled workflow triggered', status: 'info' },
+                                                       ].map((item, idx) => (
+                                                         <div key={idx} className={`p-2.5 rounded-lg border ${canvasStyles.subCardBgClass} ${canvasStyles.subCardBorderClass} flex items-center gap-2 text-[10px]`}>
+                                                           <span className="text-zinc-400 font-mono shrink-0">{item.time}</span>
+                                                           <span className={`font-medium flex-1 ${canvasStyles.textPrimaryClass}`}>{item.msg}</span>
+                                                           <span className={`px-1.5 py-0.5 rounded-md font-bold uppercase text-[8px] ${ item.status === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-sky-100 text-sky-700'}`}>{item.status}</span>
+                                                         </div>
+                                                       ))}
+                                                     </div>
+                                                   </div>
+                                                   <div className={`p-5 rounded-xl border ${canvasStyles.cardBgClass} ${canvasStyles.cardBorderClass} ${canvasStyles.cardShadowClass} space-y-3`}>
+                                                     <h3 className={`text-xs font-bold uppercase tracking-wider ${canvasStyles.textPrimaryClass}`}>Team Assignments</h3>
+                                                     <div className="space-y-2.5">
+                                                       {[
+                                                         { name: 'Aura AI', role: 'Lead Dev', tasks: 14, avatar: '🤖' },
+                                                         { name: 'Sarah K.', role: 'Designer', tasks: 8, avatar: '👩‍🎨' },
+                                                         { name: 'James T.', role: 'QA Eng.', tasks: 11, avatar: '👨‍💻' },
+                                                         { name: 'Priya M.', role: 'PM', tasks: 5, avatar: '📋' },
+                                                       ].map((m, i) => (
+                                                         <div key={i} className="flex items-center gap-2">
+                                                           <div className="w-7 h-7 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center text-sm shrink-0">{m.avatar}</div>
+                                                           <div className="flex-1">
+                                                             <div className={`text-[10px] font-bold ${canvasStyles.textPrimaryClass}`}>{m.name}</div>
+                                                             <div className={`text-[9px] ${canvasStyles.textSecondaryClass}`}>{m.role}</div>
+                                                           </div>
+                                                           <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${canvasStyles.subCardBgClass} ${canvasStyles.textSecondaryClass}`}>{m.tasks} tasks</span>
+                                                         </div>
+                                                       ))}
+                                                     </div>
+                                                   </div>
+                                                 </div>
+                                               </div>
+                                             );
+                                           })()}
+                                         </div>
+
+                                         {/* Workflows Panel */}
+                                         {activeRenderSchema.workflows && activeRenderSchema.workflows.length > 0 && (
+                                           <WorkflowPanel workflows={activeRenderSchema.workflows} theme={activeRenderSchema.theme} />
+                                         )}
+                                       </>
+                                     )}
+{isSettingsTab && (
+                                       <div className="space-y-5">
+                                         {/* Header */}
+                                         <div className={`flex flex-col border-b ${canvasStyles.dividerBorderClass} pb-4`}>
+                                           <h1 className={`text-base md:text-lg font-extrabold tracking-tight ${canvasStyles.textPrimaryClass}`}>Account & Settings</h1>
+                                           <p className={`text-xs ${canvasStyles.textSecondaryClass} mt-0.5`}>Manage your profile, preferences, privacy, and subscription.</p>
+                                         </div>
+
+                                         {/* AI Generated Settings (if any) */}
+                                         {(activeRenderSchema?.settingsLayout || []).concat(
+                                           (activeRenderSchema?.layout || []).filter(sec => getSectionTargetTab(sec.title) === 'settings')
+                                         ).map(section => (
+                                           <div key={section.id} className="p-5 rounded-xl border space-y-4 bg-zinc-50 dark:bg-zinc-800/50 border-zinc-200 dark:border-zinc-700/50">
+                                             {section.title && (
+                                                <h3 className={`text-xs font-bold uppercase tracking-wider ${canvasStyles.textPrimaryClass}`}>{section.title}</h3>
+                                             )}
+                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                               {(section.components || []).map(comp => (
+                                                 <ComponentRenderer key={comp.id} component={comp} theme={activeRenderSchema.theme} />
+                                               ))}
+                                             </div>
+                                           </div>
+                                         ))}
+
+                                         {/* Profile Card */}
+                                         <div className={`p-5 rounded-xl border ${canvasStyles.cardBgClass} ${canvasStyles.cardBorderClass} ${canvasStyles.cardShadowClass} flex flex-col md:flex-row items-start md:items-center gap-4`}>
+                                           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-2xl font-black shadow-lg shrink-0">A</div>
+                                           <div className="flex-1 space-y-0.5">
+                                             <div className={`text-sm font-extrabold ${canvasStyles.textPrimaryClass}`}>{activeRenderSchema.title || 'Aura User'}</div>
+                                             <div className={`text-[10px] ${canvasStyles.textSecondaryClass}`}>user@aura-studio.app</div>
+                                             <div className="flex items-center gap-2 mt-1.5">
+                                               <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/15 text-amber-600 border border-amber-400/30">⭐ Pro Member</span>
+                                               <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-400/20">✓ Verified</span>
+                                             </div>
+                                           </div>
+                                           <button
+                                             onClick={() => {
+                                               const newTitle = prompt("Enter new Profile / Workspace name:", activeRenderSchema.title || '');
+                                               if (newTitle) {
+                                                 const updated = { ...activeRenderSchema, title: newTitle };
+                                                 setCurrentSchema(updated);
+                                                 setProjectHistory(prev => prev.map(p => p.id === activeRenderSchema.id ? updated : p));
+                                               }
+                                             }}
+                                             className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border cursor-pointer ${canvasStyles.subCardBgClass} ${canvasStyles.subCardBorderClass} ${canvasStyles.textPrimaryClass} hover:opacity-80 transition-all shrink-0`}
+                                           >
+                                             Edit Profile
+                                           </button>
+                                         </div>
+
+                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                           {/* Accent Color Picker */}
+                                           <div className={`p-5 rounded-xl border ${canvasStyles.cardBgClass} ${canvasStyles.cardBorderClass} ${canvasStyles.cardShadowClass} space-y-3`}>
+                                             <h3 className={`text-xs font-bold uppercase tracking-wider ${canvasStyles.textPrimaryClass}`}>🎨 Theme & Appearance</h3>
+                                             <div>
+                                               <span className={`text-[10px] ${canvasStyles.textSecondaryClass} block mb-2`}>Accent Color</span>
+                                               <div className="flex flex-wrap gap-2">
+                                                 {['emerald', 'indigo', 'violet', 'amber', 'rose', 'sky', 'cyan'].map(color => (
+                                                   <button
+                                                     key={color}
+                                                     onClick={() => {
+                                                       const updated = { ...activeRenderSchema };
+                                                       updated.theme = { ...updated.theme, accentColor: color };
+                                                       setCurrentSchema(updated);
+                                                       setProjectHistory(prev => prev.map(p => p.id === activeRenderSchema.id ? updated : p));
+                                                     }}
+                                                     className={`px-2.5 py-1 text-[9px] font-bold rounded-lg border capitalize cursor-pointer transition-all ${
+                                                       activeRenderSchema.theme?.accentColor === color
+                                                         ? `${canvasStyles.accentBgClass} text-white border-transparent shadow-sm`
+                                                         : `${canvasStyles.subCardBgClass} ${canvasStyles.subCardBorderClass} ${canvasStyles.textSecondaryClass}`
+                                                     }`}
+                                                   >
+                                                     {color}
+                                                   </button>
+                                                 ))}
+                                               </div>
+                                             </div>
+                                             <div className={`pt-3 border-t ${canvasStyles.dividerBorderClass} space-y-2`}>
+                                               <span className={`text-[10px] ${canvasStyles.textSecondaryClass} block`}>Display Mode</span>
+                                               <div className="flex gap-2">
+                                                 {['light', 'dark', 'warm', 'slate'].map(mode => {
+                                                   const isActive = (activeRenderSchema.theme?.mode || 'light') === mode;
+                                                   return (
+                                                     <button
+                                                       key={mode}
+                                                       onClick={() => {
+                                                         const updated = { ...activeRenderSchema };
+                                                         updated.theme = { ...updated.theme, mode: mode as any };
+                                                         setCurrentSchema(updated);
+                                                         setProjectHistory(prev => prev.map(p => p.id === activeRenderSchema.id ? updated : p));
+                                                       }}
+                                                       className={`flex-1 py-1.5 text-[9px] font-bold rounded-lg border capitalize cursor-pointer transition-all ${
+                                                         isActive
+                                                           ? `${canvasStyles.accentBgClass} text-white border-transparent`
+                                                           : `${canvasStyles.subCardBgClass} ${canvasStyles.subCardBorderClass} ${canvasStyles.textSecondaryClass}`
+                                                       }`}
+                                                     >
+                                                       {mode}
+                                                     </button>
+                                                   );
+                                                 })}
+                                               </div>
+                                             </div>
+                                           </div>
+
+                                           {/* Notification Toggles */}
+                                           <div className={`p-5 rounded-xl border ${canvasStyles.cardBgClass} ${canvasStyles.cardBorderClass} ${canvasStyles.cardShadowClass} space-y-3`}>
+                                             <h3 className={`text-xs font-bold uppercase tracking-wider ${canvasStyles.textPrimaryClass}`}>🔔 Notifications</h3>
+                                             <div className="space-y-2.5">
+                                               {[
+                                                 { label: 'Email Digests', sub: 'Weekly summary reports' },
+                                                 { label: 'Push Notifications', sub: 'Real-time activity alerts' },
+                                                 { label: 'Marketing Emails', sub: 'Product updates & offers' },
+                                                 { label: 'Security Alerts', sub: 'Login & access warnings' },
+                                               ].map((n, i) => {
+                                                 const isOn = !!settingsNotifications[n.label];
+                                                 return (
+                                                   <div key={i} className="flex items-center justify-between">
+                                                     <div>
+                                                       <div className={`text-[10px] font-semibold ${canvasStyles.textPrimaryClass}`}>{n.label}</div>
+                                                       <div className={`text-[9px] ${canvasStyles.textSecondaryClass}`}>{n.sub}</div>
+                                                     </div>
+                                                     <button
+                                                       onClick={() => {
+                                                         setSettingsNotifications(prev => ({
+                                                           ...prev,
+                                                           [n.label]: !prev[n.label]
+                                                         }));
+                                                       }}
+                                                       className={`w-9 h-5 rounded-full relative cursor-pointer transition-all border border-transparent ${isOn ? canvasStyles.accentBgClass : 'bg-zinc-200 dark:bg-zinc-700'}`}
+                                                     >
+                                                       <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all ${isOn ? 'left-4.5' : 'left-0.5'}`} />
+                                                     </button>
+                                                   </div>
+                                                 );
+                                               })}
+                                             </div>
+                                           </div>
+
+                                           {/* Privacy Settings */}
+                                           <div className={`p-5 rounded-xl border ${canvasStyles.cardBgClass} ${canvasStyles.cardBorderClass} ${canvasStyles.cardShadowClass} space-y-3`}>
+                                             <h3 className={`text-xs font-bold uppercase tracking-wider ${canvasStyles.textPrimaryClass}`}>🔒 Privacy & Security</h3>
+                                             <div className="space-y-2">
+                                               {[
+                                                 { label: 'Two-Factor Auth', val: 'Enabled', color: 'text-emerald-500' },
+                                                 { label: 'Data Sharing', val: 'Off', color: 'text-rose-500' },
+                                                 { label: 'Session Timeout', val: '30 min', color: canvasStyles.textSecondaryClass },
+                                                 { label: 'Last Login', val: 'Today, 11:02 AM', color: canvasStyles.textSecondaryClass },
+                                               ].map((row, i) => (
+                                                 <div key={i} className={`flex justify-between items-center py-1.5 border-b ${canvasStyles.dividerBorderClass} last:border-0`}>
+                                                   <span className={`text-[10px] ${canvasStyles.textSecondaryClass}`}>{row.label}</span>
+                                                   <span className={`text-[10px] font-bold ${row.color}`}>{row.val}</span>
+                                                 </div>
+                                               ))}
+                                             </div>
+                                             <button
+                                               onClick={() => {
+                                                 alert("Password update requested! Check your registered email for reset instructions.");
+                                               }}
+                                               className="w-full py-2 rounded-lg text-[10px] font-bold border border-rose-400/30 text-rose-500 bg-rose-500/5 hover:bg-rose-500/10 cursor-pointer transition-all"
+                                             >
+                                               Change Password
+                                             </button>
+                                           </div>
+
+                                           {/* Subscription Tier */}
+                                           <div className={`p-5 rounded-xl border ${canvasStyles.cardBgClass} ${canvasStyles.cardBorderClass} ${canvasStyles.cardShadowClass} space-y-3 bg-gradient-to-br from-amber-500/5 via-transparent to-orange-500/5`}>
+                                             <div className="flex items-center justify-between">
+                                               <h3 className={`text-xs font-bold uppercase tracking-wider ${canvasStyles.textPrimaryClass}`}>⭐ Subscription</h3>
+                                               <span className="px-2 py-0.5 text-[9px] font-bold bg-amber-400/20 text-amber-600 border border-amber-400/30 rounded-full">PRO PLAN</span>
+                                             </div>
+                                             <div className="space-y-2">
+                                               {['Unlimited AI Generations', 'Priority API Access', 'Export to React/Vue/HTML', 'Team Collaboration (5 seats)'].map((feat, i) => (
+                                                 <div key={i} className={`flex items-center gap-2 text-[10px] ${canvasStyles.textPrimaryClass}`}>
+                                                   <span className="text-emerald-500 text-xs">✓</span> {feat}
+                                                 </div>
+                                               ))}
+                                             </div>
+                                             <div className={`pt-2 border-t ${canvasStyles.dividerBorderClass} flex justify-between items-center`}>
+                                               <span className={`text-[10px] ${canvasStyles.textSecondaryClass}`}>Renews Jan 1, 2026</span>
+                                               <button
+                                                 onClick={() => {
+                                                   alert("Upgrade plan requested! Redirecting to billing module...");
+                                                 }}
+                                                 className={`px-3 py-1.5 rounded-lg text-[10px] font-bold cursor-pointer ${canvasStyles.accentBgClass} text-white hover:opacity-90 transition-all`}
+                                               >
+                                                 Upgrade Plan
+                                               </button>
+                                             </div>
+                                           </div>
+                                         </div>
+
+                                         {/* Metadata */}
+                                         <div className={`p-4 rounded-xl border ${canvasStyles.cardBgClass} ${canvasStyles.cardBorderClass} ${canvasStyles.cardShadowClass}`}>
+                                           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[10px]">
+                                             <div><span className={canvasStyles.textSecondaryClass}>Connection</span><div className={`font-bold mt-0.5 ${ activeRenderSchema.connectionMode === 'fallback' ? 'text-amber-500' : activeRenderSchema.connectionMode === 'gemini' ? 'text-blue-500' : 'text-emerald-500'}`}>{activeRenderSchema.connectionMode === 'fallback' ? 'Local Fallback' : activeRenderSchema.connectionMode === 'gemini' ? 'Gemini Active' : 'OpenRouter'}</div></div>
+                                             <div><span className={canvasStyles.textSecondaryClass}>Schema ID</span><div className={`font-mono mt-0.5 text-zinc-400 truncate`}>{(activeRenderSchema.id || '').slice(0,12)}…</div></div>
+                                             <div><span className={canvasStyles.textSecondaryClass}>Category</span><div className={`font-bold mt-0.5 ${canvasStyles.textPrimaryClass}`}>{activeRenderSchema.category || 'Custom'}</div></div>
+                                             <div><span className={canvasStyles.textSecondaryClass}>Token Limit</span><div className={`font-mono font-bold mt-0.5 ${canvasStyles.textPrimaryClass}`}>{activeRenderSchema.connectionMode === 'fallback' ? 'N/A' : '4,000'}</div></div>
+                                           </div>
+                                         </div>
+                                       </div>
+                                    )}
+
+                                    {/* Fallback rendering for any custom tab (not dashboard/ops/analytics/settings-type) */}
+                                    {!isDashboardTab && !isOpsTab && !isAnalyticsTab && !isSettingsTab && (
+                                      <>
+                                        <div className={`flex flex-col border-b ${canvasStyles.dividerBorderClass} pb-4`}>
+                                          <h1 className={`text-base md:text-lg font-extrabold tracking-tight ${canvasStyles.textPrimaryClass}`}>
+                                            {sidebarLinks.find(link => link.tabId === activeSubTab)?.label || 'Module Workspace'}
+                                          </h1>
+                                          <p className={`text-xs ${canvasStyles.textSecondaryClass} mt-0.5`}>
+                                            Tailored application views, visual cards, and operational controls.
+                                          </p>
                                         </div>
 
                                         {/* KPI Metrics */}
@@ -1085,268 +2057,39 @@ export default function App() {
 
                                         {/* Section Grid Components */}
                                         <div className="space-y-8">
-                                          {activeRenderSchema.layout.map(section => {
-                                            const renderedComponents = section.components;
-                                            
-                                            return (
-                                              <div key={section.id} className="space-y-3">
-                                                {section.title && (
-                                                  <h3 className={`text-xs font-semibold uppercase tracking-wider flex items-center gap-2 ${canvasStyles.textSecondaryClass}`}>
-                                                    <LayoutGrid className="w-3.5 h-3.5 opacity-60" />
-                                                    {section.title}
-                                                  </h3>
-                                                )}
-
-                                                <div
-                                                  className={`grid grid-cols-1 ${
-                                                    isMobile
-                                                      ? 'grid-cols-1'
-                                                      : section.gridCols === 2
-                                                      ? 'lg:grid-cols-2'
-                                                      : section.gridCols === 3
-                                                      ? 'lg:grid-cols-3'
-                                                      : 'grid-cols-1'
-                                                  } ${canvasStyles.densityGapClass}`}
-                                                >
-                                                  {renderedComponents.map(comp => (
-                                                    <ComponentRenderer 
-                                                      key={comp.id} 
-                                                      component={comp} 
-                                                      theme={activeRenderSchema.theme} 
-                                                      onStateChange={handleStateChange}
-                                                      device={previewDevice}
-                                                    />
-                                                  ))}
-                                                </div>
-                                              </div>
-                                            );
-                                          })}
-                                        </div>
-                                      </>
-                                    )}
-
-                                    {activeSubTab === 'analytics' && (
-                                      <>
-                                        {/* Analytics Section Header */}
-                                        <div className={`flex flex-col border-b ${canvasStyles.dividerBorderClass} pb-4`}>
-                                          <h1 className={`text-base md:text-lg font-extrabold tracking-tight ${canvasStyles.textPrimaryClass}`}>
-                                            Analytics & Performance
-                                          </h1>
-                                          <p className={`text-xs ${canvasStyles.textSecondaryClass} mt-0.5`}>
-                                            Deep-dive calculations, comparative trends, and visual performance charts.
-                                          </p>
-                                        </div>
-
-                                        {/* KPI Metrics */}
-                                        {activeRenderSchema.metrics && activeRenderSchema.metrics.length > 0 && (
-                                          <MetricsBar metrics={activeRenderSchema.metrics} theme={activeRenderSchema.theme} device={previewDevice} />
-                                        )}
-
-                                        {/* Section Grid: Charts */}
-                                        <div className="space-y-8">
-                                          {(() => {
-                                            const chartSections = activeRenderSchema.layout.map(section => {
-                                              const charts = section.components.filter(c => c.type === 'chart');
-                                              return { ...section, components: charts };
-                                            }).filter(section => section.components.length > 0);
-
-                                            if (chartSections.length > 0) {
-                                              return chartSections.map(section => (
-                                                <div key={section.id} className="space-y-3">
-                                                  <div
-                                                    className={`grid grid-cols-1 ${
-                                                      isMobile ? 'grid-cols-1' : 'lg:grid-cols-2'
-                                                    } ${canvasStyles.densityGapClass}`}
-                                                  >
-                                                    {section.components.map(comp => (
-                                                      <ComponentRenderer 
-                                                        key={comp.id} 
-                                                        component={comp} 
-                                                        theme={activeRenderSchema.theme} 
-                                                        onStateChange={handleStateChange}
-                                                        device={previewDevice}
-                                                      />
-                                                    ))}
-                                                  </div>
-                                                </div>
-                                              ));
-                                            }
-
-                                            // Fallback simulated chart
-                                            return (
-                                              <div className={`p-6 rounded-xl border ${canvasStyles.cardBgClass} ${canvasStyles.cardBorderClass} ${canvasStyles.cardShadowClass} space-y-4`}>
-                                                <div className="flex items-center justify-between pb-2 border-b border-zinc-100 dark:border-zinc-800">
-                                                  <div>
-                                                    <h3 className={`text-xs font-bold uppercase tracking-wider ${canvasStyles.textPrimaryClass}`}>Simulated Performance Analysis</h3>
-                                                    <p className={`text-[10px] ${canvasStyles.textSecondaryClass}`}>Historical trends compiled from KPI parameters.</p>
-                                                  </div>
-                                                </div>
-                                                <div className="h-56 flex items-end justify-between gap-3 pt-6 px-4">
-                                                  {[60, 85, 45, 92, 70, 88, 95].map((val, idx) => (
-                                                    <div key={idx} className="flex-1 flex flex-col items-center gap-2 group cursor-pointer">
-                                                      <div className="w-full relative bg-zinc-100 dark:bg-zinc-850 rounded-md overflow-hidden h-40 flex items-end">
-                                                        <div 
-                                                          className="w-full bg-zinc-250 group-hover:opacity-90 transition-all rounded-t-sm" 
-                                                          style={{ height: `${val}%`, backgroundColor: canvasStyles.primaryColorHex }} 
-                                                        />
-                                                      </div>
-                                                      <span className="text-[9px] text-zinc-400 font-semibold font-mono">Day {idx + 1}</span>
-                                                    </div>
-                                                  ))}
-                                                </div>
-                                              </div>
-                                            );
-                                          })()}
-                                        </div>
-                                      </>
-                                    )}
-
-                                    {activeSubTab === 'operations' && (
-                                      <>
-                                        {/* Operations Section Header */}
-                                        <div className={`flex flex-col border-b ${canvasStyles.dividerBorderClass} pb-4`}>
-                                          <h1 className={`text-base md:text-lg font-extrabold tracking-tight ${canvasStyles.textPrimaryClass}`}>
-                                            Operations Control Panel
-                                          </h1>
-                                          <p className={`text-xs ${canvasStyles.textSecondaryClass} mt-0.5`}>
-                                            Task execution pipelines, item databases, and automated workflows.
-                                          </p>
-                                        </div>
-
-                                        {/* Section Grid: Kanban & Tables */}
-                                        <div className="space-y-8">
-                                          {(() => {
-                                            const opsSections = activeRenderSchema.layout.map(section => {
-                                              const ops = section.components.filter(c => c.type === 'table' || c.type === 'kanban' || c.type === 'action_list' || c.type === 'alert');
-                                              return { ...section, components: ops };
-                                            }).filter(section => section.components.length > 0);
-
-                                            if (opsSections.length > 0) {
-                                              return opsSections.map(section => (
-                                                <div key={section.id} className="space-y-3">
-                                                  <div className="grid grid-cols-1 gap-6">
-                                                    {section.components.map(comp => (
-                                                      <ComponentRenderer 
-                                                        key={comp.id} 
-                                                        component={comp} 
-                                                        theme={activeRenderSchema.theme} 
-                                                        onStateChange={handleStateChange}
-                                                        device={previewDevice}
-                                                      />
-                                                    ))}
-                                                  </div>
-                                                </div>
-                                              ));
-                                            }
-
-                                            // Fallback simulated logs
-                                            return (
-                                              <div className={`p-5 rounded-xl border ${canvasStyles.cardBgClass} ${canvasStyles.cardBorderClass} ${canvasStyles.cardShadowClass} space-y-3`}>
-                                                <h3 className={`text-xs font-bold uppercase tracking-wider ${canvasStyles.textPrimaryClass}`}>Simulated Operations Log Feed</h3>
-                                                <div className="space-y-2">
-                                                  {[
-                                                    { time: '10:45 AM', msg: 'Sync completed successfully.', status: 'success' },
-                                                    { time: '09:12 AM', msg: 'Database backup initiated.', status: 'info' },
-                                                    { time: '08:00 AM', msg: 'Automated morning routine triggered.', status: 'success' }
-                                                  ].map((item, idx) => (
-                                                    <div key={idx} className={`p-2.5 rounded-lg border ${canvasStyles.subCardBgClass} ${canvasStyles.subCardBorderClass} flex items-center justify-between text-[10px]`}>
-                                                      <span className="text-zinc-400 font-mono">{item.time}</span>
-                                                      <span className={`font-medium ${canvasStyles.textPrimaryClass}`}>{item.msg}</span>
-                                                      <span className={`px-1.5 py-0.5 rounded-md font-bold uppercase text-[8px] ${
-                                                        item.status === 'success' ? 'bg-emerald-100 text-emerald-800' : 'bg-sky-100 text-sky-800'
-                                                      }`}>{item.status}</span>
-                                                    </div>
-                                                  ))}
-                                                </div>
-                                              </div>
-                                            );
-                                          })()}
-                                        </div>
-
-                                        {/* Workflows Panel */}
-                                        {activeRenderSchema.workflows && activeRenderSchema.workflows.length > 0 && (
-                                          <WorkflowPanel workflows={activeRenderSchema.workflows} theme={activeRenderSchema.theme} />
-                                        )}
-                                      </>
-                                    )}
-
-                                    {activeSubTab === 'settings' && (
-                                      <div className="space-y-6">
-                                        <div className={`flex flex-col border-b ${canvasStyles.dividerBorderClass} pb-4`}>
-                                          <h1 className={`text-base md:text-lg font-extrabold tracking-tight ${canvasStyles.textPrimaryClass}`}>
-                                            Application Settings
-                                          </h1>
-                                          <p className={`text-xs ${canvasStyles.textSecondaryClass} mt-0.5`}>
-                                            Configure layout parameters and color tokens dynamically.
-                                          </p>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                          {/* Accent Color picker */}
-                                          <div className={`p-5 rounded-xl border ${canvasStyles.cardBgClass} ${canvasStyles.cardBorderClass} ${canvasStyles.cardShadowClass} space-y-4`}>
-                                            <h3 className={`text-xs font-bold uppercase tracking-wider ${canvasStyles.textPrimaryClass}`}>
-                                              Accent Palette Selection
-                                            </h3>
-                                            <div className="space-y-3">
-                                              <div>
-                                                <span className={`text-[10px] ${canvasStyles.textSecondaryClass} block mb-1.5`}>Accent Color</span>
-                                                <div className="flex flex-wrap gap-2">
-                                                  {['emerald', 'indigo', 'violet', 'amber', 'rose', 'sky', 'cyan'].map(color => (
-                                                    <button
-                                                      key={color}
-                                                      onClick={() => {
-                                                        const updated = { ...activeRenderSchema };
-                                                        updated.theme = { ...updated.theme, accentColor: color };
-                                                        setCurrentSchema(updated);
-                                                        setProjectHistory(prev => prev.map(p => p.id === activeRenderSchema.id ? updated : p));
-                                                      }}
-                                                      className={`px-2.5 py-1 text-[9px] font-bold rounded-md border capitalize cursor-pointer transition-all ${
-                                                        activeRenderSchema.theme?.accentColor === color
-                                                          ? `${canvasStyles.accentBgClass} text-white border-transparent`
-                                                          : `${canvasStyles.subCardBgClass} ${canvasStyles.subCardBorderClass} ${canvasStyles.textSecondaryClass} hover:border-zinc-450`
-                                                      }`}
-                                                    >
-                                                      {color}
-                                                    </button>
-                                                  ))}
-                                                </div>
+                                          {(activeRenderSchema?.layout || []).map(section => (
+                                            <div key={section.id} className="space-y-3">
+                                              {section.title && (
+                                                <h3 className={`text-xs font-semibold uppercase tracking-wider flex items-center gap-2 ${canvasStyles.textSecondaryClass}`}>
+                                                  <LayoutGrid className="w-3.5 h-3.5 opacity-60" />
+                                                  {section.title}
+                                                </h3>
+                                              )}
+                                              <div className={`grid grid-cols-1 ${
+                                                section.gridCols === 2 ? 'lg:grid-cols-2' : section.gridCols === 3 ? 'lg:grid-cols-3' : 'grid-cols-1'
+                                              } ${canvasStyles.densityGapClass}`}>
+                                                {(section?.components || []).map(comp => (
+                                                  <ComponentRenderer 
+                                                    key={comp.id} 
+                                                    component={comp} 
+                                                    theme={activeRenderSchema.theme} 
+                                                    onStateChange={handleStateChange}
+                                                    device={previewDevice}
+                                                  />
+                                                ))}
                                               </div>
                                             </div>
-                                          </div>
-
-                                          {/* Diagnostic info */}
-                                          <div className={`p-5 rounded-xl border ${canvasStyles.cardBgClass} ${canvasStyles.cardBorderClass} ${canvasStyles.cardShadowClass} space-y-4`}>
-                                            <h3 className={`text-xs font-bold uppercase tracking-wider ${canvasStyles.textPrimaryClass}`}>
-                                              Metadata Diagnostics
-                                            </h3>
-                                            <div className="space-y-2.5 text-[10px]">
-                                              <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-800 pb-1.5">
-                                                <span className={canvasStyles.textSecondaryClass}>Connection Mode</span>
-                                                <span className="font-semibold text-emerald-600 dark:text-emerald-400">OpenRouter Active</span>
-                                              </div>
-                                              <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-800 pb-1.5">
-                                                <span className={canvasStyles.textSecondaryClass}>API Token Cost Limit</span>
-                                                <span className={`font-mono font-bold ${canvasStyles.textPrimaryClass}`}>4,000 max_tokens</span>
-                                              </div>
-                                              <div className="flex justify-between border-b border-zinc-100 dark:border-zinc-800 pb-1.5">
-                                                <span className={canvasStyles.textSecondaryClass}>Schema ID</span>
-                                                <span className={`font-mono text-zinc-400`}>{activeRenderSchema.id}</span>
-                                              </div>
-                                              <div className="flex justify-between">
-                                                <span className={canvasStyles.textSecondaryClass}>Application Scope</span>
-                                                <span className={`font-semibold ${canvasStyles.textPrimaryClass}`}>{activeRenderSchema.category || 'Custom'}</span>
-                                              </div>
-                                            </div>
-                                          </div>
+                                          ))}
                                         </div>
-                                      </div>
+                                      </>
                                     )}
-                                  </motion.div>
-                                </AnimatePresence>
-                              </div>
-                            </div>
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </div>
-                        );
+                        </div>
+                      );
 
                         return (
                           <div className={frameContainerClass}>
@@ -1390,58 +2133,7 @@ export default function App() {
         />
       )}
 
-      {/* High-Tech AI Generation Synthesis Progress Modal */}
-      {isLoading && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-          <div className="w-full max-w-md p-8 rounded-3xl bg-zinc-900 border border-zinc-800 text-white shadow-2xl space-y-6 text-center relative overflow-hidden">
-            {/* Background ambient glow */}
-            <div className="absolute -top-24 -left-24 w-48 h-48 rounded-full bg-amber-500/20 blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-24 -right-24 w-48 h-48 rounded-full bg-indigo-500/20 blur-3xl pointer-events-none" />
-
-            <div className="relative z-10 space-y-5">
-              {/* Animated Pulsing Icon */}
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-amber-500 via-indigo-600 to-cyan-500 p-0.5 shadow-xl shadow-amber-500/20 animate-pulse">
-                <div className="w-full h-full bg-zinc-950 rounded-2xl flex items-center justify-center">
-                  <Sparkles className="w-8 h-8 text-amber-400 animate-spin" />
-                </div>
-              </div>
-
-              {/* Dynamic Stage Text */}
-              <div className="space-y-1.5">
-                <h3 className="text-base font-black tracking-tight">Synthesizing Generative UI</h3>
-                <p className="text-xs text-amber-400 font-bold min-h-[36px] flex items-center justify-center px-4 leading-snug">
-                  {generationStage}
-                </p>
-              </div>
-
-              {/* Progress Bar */}
-              <div className="space-y-2">
-                <div className="w-full h-3 rounded-full bg-zinc-950 p-0.5 border border-zinc-800 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-amber-500 via-indigo-500 to-cyan-400 transition-all duration-300 shadow-md shadow-amber-500/50"
-                    style={{ width: `${generationProgress}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between text-[11px] text-zinc-400 font-extrabold px-1">
-                  <span>AI Code Compiler v2.5</span>
-                  <span className="text-amber-400 font-mono text-xs">{generationProgress}%</span>
-                </div>
-              </div>
-
-              {/* Live Terminal Preview */}
-              <div className="p-3.5 rounded-2xl bg-black/70 border border-zinc-800/80 text-left font-mono text-[10px] text-zinc-400 space-y-1.5">
-                <div className="flex items-center justify-between text-[9px] text-zinc-500 border-b border-zinc-800 pb-1">
-                  <span>BUILD PIPELINE</span>
-                  <span className="text-emerald-400 font-bold">STATUS: RUNNING</span>
-                </div>
-                <p className="text-emerald-400">✓ Extracting domain intent keywords...</p>
-                <p className="text-cyan-400">✓ Resolving Unsplash HD topic media...</p>
-                <p className="text-amber-300 animate-pulse">⚙ Compiling React 19 JSX & Recharts graphs...</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Loading overlay modal removed for interactive conversational UI */}
     </div>
   );
 }
@@ -1502,23 +2194,25 @@ function getSaasFallbackSchema(prompt: string): DynamicUISchema {
             ]
           }
         ]
-      },
+      }
+    ],
+    operationsLayout: [
       {
-        id: 's2',
-        title: "Accounts Ledger",
+        id: 's_ops',
+        title: "Enterprise Accounts Operations Ledger",
         gridCols: 1,
         components: [
           {
             id: 't1',
             type: 'table',
-            title: "Top Enterprise Accounts",
+            title: "Top Enterprise Accounts Operations Ledger",
             searchable: true,
             exportable: true,
             columns: [
               { key: "company", label: "Company / Customer", type: "text" },
-              { key: "tier", label: "Subscription Tier", type: "badge", badgeColorMap: { "Enterprise": "bg-zinc-100 text-zinc-900 border-zinc-300", "Pro": "bg-blue-50 text-blue-700 border-blue-200" } },
+              { key: "tier", label: "Subscription Tier", type: "badge", badgeColorMap: { "Enterprise": "bg-indigo-500/10 text-indigo-400 border-indigo-500/20", "Pro": "bg-cyan-500/10 text-cyan-400 border-cyan-500/20" } },
               { key: "mrr", label: "Monthly Spend", type: "currency" },
-              { key: "status", label: "Account Health", type: "badge", badgeColorMap: { "Healthy": "bg-emerald-50 text-emerald-700 border-emerald-200", "At Risk": "bg-amber-50 text-amber-700 border-amber-200" } }
+              { key: "status", label: "Account Health", type: "badge", badgeColorMap: { "Healthy": "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", "At Risk": "bg-rose-500/10 text-rose-400 border-rose-500/20" } }
             ],
             data: [
               { company: "Acme Corp", tier: "Enterprise", mrr: 1499, status: "Healthy" },
@@ -1549,6 +2243,29 @@ function getHiringFallbackSchema(prompt: string): DynamicUISchema {
     ],
     initialState: {},
     layout: [
+      {
+        id: 's_dash_hiring',
+        title: "Recruitment Performance Dashboard",
+        gridCols: 1,
+        components: [
+          {
+            id: 'c_hiring_chart',
+            type: 'chart',
+            chartType: 'bar',
+            title: "Hiring Pipeline Velocity",
+            xAxisKey: "dept",
+            dataKeys: [{ key: "candidates", name: "Candidates", color: "#8b5cf6" }],
+            data: [
+              { dept: "Engineering", candidates: 18 },
+              { dept: "Design", candidates: 8 },
+              { dept: "Product", candidates: 10 },
+              { dept: "Sales", candidates: 6 }
+            ]
+          }
+        ]
+      }
+    ],
+    operationsLayout: [
       {
         id: 's1',
         gridCols: 1,
@@ -1620,6 +2337,33 @@ function getInventoryFallbackSchema(prompt: string): DynamicUISchema {
           }
         ]
       }
+    ],
+    operationsLayout: [
+      {
+        id: 's_inv_ops',
+        title: "Fulfillment Operations Log",
+        gridCols: 1,
+        components: [
+          {
+            id: 't_inv_sku',
+            type: 'table',
+            title: "SKU Warehouse Reorder Log",
+            searchable: true,
+            exportable: true,
+            columns: [
+              { key: "sku", label: "SKU Code", type: "text" },
+              { key: "product", label: "Product Name", type: "text" },
+              { key: "stock", label: "Current Stock", type: "number" },
+              { key: "status", label: "Status", type: "badge", badgeColorMap: { "Low Stock": "bg-rose-500/10 text-rose-600 border-rose-500/20", "Optimal": "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" } }
+            ],
+            data: [
+              { sku: "SKU-8842", product: "Ergonomic Desk Chair", stock: 14, status: "Low Stock" },
+              { sku: "SKU-9011", product: "Standing Desk 140cm", stock: 45, status: "Optimal" },
+              { sku: "SKU-3320", product: "Dual Monitor Arm", stock: 8, status: "Low Stock" }
+            ]
+          }
+        ]
+      }
     ]
   };
 }
@@ -1634,14 +2378,14 @@ function getHabitFallbackSchema(prompt: string): DynamicUISchema {
     generatedPrompt: prompt,
     metrics: [
       { id: 'm1', label: "Current Focus Streak", value: "12 Days", change: "Personal Best", trend: "up", format: "text" },
-      { id: 'm2', label: "Weekly Completion Rate", value: "92%", change: "+8%", trend: "up", format: "percentage" },
+      { id: 'm2', label: "Weekly Completion Rate", value: "92%", change: "+8%", trend: "up", subtext: "36 of 39 habits logged", format: "percentage" },
       { id: 'm3', label: "Deep Work Hours", value: "34.5 hrs", change: "+4 hrs", trend: "up", format: "text" }
     ],
     initialState: {},
     layout: [
       {
         id: 's1',
-        gridCols: 2,
+        gridCols: 1,
         components: [
           {
             id: 'chart_habits',
@@ -1657,7 +2401,16 @@ function getHabitFallbackSchema(prompt: string): DynamicUISchema {
               { day: "Thu", hours: 6.0 },
               { day: "Fri", hours: 6.8 }
             ]
-          },
+          }
+        ]
+      }
+    ],
+    operationsLayout: [
+      {
+        id: 's_habit_ops',
+        title: "Focus Log & Routine Entry",
+        gridCols: 2,
+        components: [
           {
             id: 'form_habit_log',
             type: 'form',

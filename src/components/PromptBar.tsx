@@ -23,10 +23,11 @@ interface AttachedFile {
   size: string;
   category: 'image' | 'doc' | 'media';
   previewUrl?: string;
+  base64Data?: string;
 }
 
 interface PromptBarProps {
-  onGenerate: (prompt: string, isRefine?: boolean) => void;
+  onGenerate: (prompt: string, isRefine?: boolean, images?: string[]) => void;
   isLoading: boolean;
   currentPrompt?: string;
   hasActiveSchema?: boolean;
@@ -303,24 +304,37 @@ export const PromptBar: React.FC<PromptBarProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
-  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>, category: 'image' | 'doc' | 'media') => {
+  const readFileAsBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>, category: 'image' | 'doc' | 'media') => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     const fileList: File[] = Array.from(files);
-    const newFiles: AttachedFile[] = fileList.map((file: File) => {
-      let previewUrl: string | undefined = undefined;
-      if (file.type.startsWith('image/')) {
-        previewUrl = URL.createObjectURL(file);
-      }
-      return {
-        id: Math.random().toString(36).substring(2, 9),
-        name: file.name,
-        size: formatFileSize(file.size),
-        category,
-        previewUrl
-      };
-    });
+    const newFiles: AttachedFile[] = await Promise.all(
+      fileList.map(async (file: File) => {
+        let previewUrl: string | undefined = undefined;
+        let base64Data: string | undefined = undefined;
+        if (file.type.startsWith('image/')) {
+          previewUrl = URL.createObjectURL(file);
+          base64Data = await readFileAsBase64(file);
+        }
+        return {
+          id: Math.random().toString(36).substring(2, 9),
+          name: file.name,
+          size: formatFileSize(file.size),
+          category,
+          previewUrl,
+          base64Data
+        };
+      })
+    );
 
     setAttachedFiles((prev) => [...prev, ...newFiles]);
     setIsPlusMenuOpen(false);
@@ -331,7 +345,7 @@ export const PromptBar: React.FC<PromptBarProps> = ({
     setAttachedFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
-  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const items = e.clipboardData?.items;
     if (!items) return;
 
@@ -348,16 +362,20 @@ export const PromptBar: React.FC<PromptBarProps> = ({
 
     if (files.length > 0) {
       e.preventDefault();
-      const newFiles: AttachedFile[] = files.map((file: File) => {
-        const previewUrl = URL.createObjectURL(file);
-        return {
-          id: Math.random().toString(36).substring(2, 9),
-          name: file.name || `pasted-image-${Date.now().toString().slice(-4)}.png`,
-          size: formatFileSize(file.size),
-          category: 'image',
-          previewUrl
-        };
-      });
+      const newFiles: AttachedFile[] = await Promise.all(
+        files.map(async (file: File) => {
+          const previewUrl = URL.createObjectURL(file);
+          const base64Data = await readFileAsBase64(file);
+          return {
+            id: Math.random().toString(36).substring(2, 9),
+            name: file.name || `pasted-image-${Date.now().toString().slice(-4)}.png`,
+            size: formatFileSize(file.size),
+            category: 'image',
+            previewUrl,
+            base64Data
+          };
+        })
+      );
       setAttachedFiles((prev) => [...prev, ...newFiles]);
     }
   };
@@ -367,17 +385,21 @@ export const PromptBar: React.FC<PromptBarProps> = ({
     if ((!inputPrompt.trim() && attachedFiles.length === 0) || isLoading) return;
 
     let finalPrompt = inputPrompt.trim();
+    const images = attachedFiles
+      .map((f) => f.base64Data)
+      .filter((b): b is string => Boolean(b));
+
     if (attachedFiles.length > 0) {
       const fileNames = attachedFiles.map((f) => f.name).join(', ');
       finalPrompt = finalPrompt
-        ? `${finalPrompt} (Attached files: ${fileNames})`
-        : `Attached files: ${fileNames}`;
+        ? `${finalPrompt} (Attached reference images/files: ${fileNames})`
+        : `Generate UI based on attached visual reference image(s): ${fileNames}`;
     }
 
     setIsPlusMenuOpen(false);
     setIsModelMenuOpen(false);
     setAttachedFiles([]);
-    onGenerate(finalPrompt, isCompactMode || hasActiveSchema);
+    onGenerate(finalPrompt, isCompactMode || hasActiveSchema, images);
   };
 
   const handlePresetClick = (preset: PresetTemplate) => {

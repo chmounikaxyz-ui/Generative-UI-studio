@@ -78,7 +78,14 @@ export const FoodMenuCard: React.FC<FoodMenuCardProps> = ({ component, theme }) 
                 </h4>
 
                 <div className="font-extrabold text-xs text-zinc-900 dark:text-zinc-100">
-                  ${item.price.toFixed(2)}
+                  {(() => {
+                    const price = item.price;
+                    if (price === undefined || price === null) return '$0.00';
+                    if (typeof price === 'number') return `$${price.toFixed(2)}`;
+                    const parsed = parseFloat(price.replace?.(/[^0-9.]/g, '') || price);
+                    if (isNaN(parsed)) return String(price);
+                    return `$${parsed.toFixed(2)}`;
+                  })()}
                 </div>
 
                 {item.rating && (

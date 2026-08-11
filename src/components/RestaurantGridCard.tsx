@@ -60,8 +60,8 @@ export const RestaurantGridCard: React.FC<RestaurantGridCardProps> = ({ componen
 
                 {/* Offer Badge Overlay */}
                 {rest.offerBadge && (
-                  <div className="absolute bottom-2 left-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-extrabold text-[10px] px-2.5 py-1 rounded-md shadow-md flex items-center gap-1 uppercase tracking-wider">
-                    <Tag className="w-3 h-3" />
+                  <div className="absolute bottom-3 left-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-[11px] px-3 py-1 rounded-lg uppercase tracking-wider shadow-md flex items-center gap-1.5">
+                    <Tag className="w-3.5 h-3.5" />
                     <span>{rest.offerBadge}</span>
                   </div>
                 )}
@@ -69,43 +69,43 @@ export const RestaurantGridCard: React.FC<RestaurantGridCardProps> = ({ componen
                 {/* Heart Favorite Button */}
                 <button
                   onClick={(e) => toggleFavorite(rest.id, e)}
-                  className="absolute top-2 right-2 p-2 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-black/60 transition-all cursor-pointer"
+                  className="absolute top-3 right-3 p-2 rounded-full bg-black/40 backdrop-blur-md text-white hover:bg-black/60 transition-all cursor-pointer"
                 >
                   <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-rose-500 text-rose-500 animate-pulse' : 'text-white'}`} />
                 </button>
 
                 {/* Promoted Badge */}
                 {rest.isPromoted && (
-                  <span className="absolute top-2 left-2 bg-zinc-900/80 backdrop-blur-md text-zinc-300 text-[9px] font-mono px-1.5 py-0.5 rounded">
+                  <span className="absolute top-3 left-3 bg-zinc-900/80 backdrop-blur-md text-zinc-300 text-[9px] font-mono px-2 py-0.5 rounded-md">
                     Ad
                   </span>
                 )}
               </div>
 
               {/* Card Details */}
-              <div className="p-3.5 space-y-2 flex-1 flex flex-col justify-between">
+              <div className="p-4 space-y-2 flex-1 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between gap-2">
-                    <h4 className={`text-sm font-extrabold ${styles.textPrimaryClass} truncate group-hover:text-amber-500 transition-colors`}>
+                    <h4 className={`text-base font-extrabold ${styles.textPrimaryClass} truncate group-hover:text-amber-500 transition-colors`}>
                       {rest.name}
                     </h4>
-                    <div className="flex items-center gap-1 bg-emerald-600 text-white font-bold text-[11px] px-1.5 py-0.5 rounded shrink-0 shadow-2xs">
+                    <div className="flex items-center gap-1 bg-emerald-600 text-white font-extrabold text-xs px-2 py-0.5 rounded-md shrink-0 shadow-2xs">
                       <span>{rest.rating}</span>
                       <Star className="w-3 h-3 fill-white text-white" />
                     </div>
                   </div>
-                  <p className={`text-xs ${styles.textSecondaryClass} truncate mt-0.5`}>
+                  <p className={`text-xs font-medium ${styles.textSecondaryClass} truncate mt-0.5`}>
                     {rest.cuisine}
                   </p>
                 </div>
 
-                <div className={`flex items-center justify-between text-[11px] font-medium pt-2 border-t ${styles.dividerBorderClass} ${styles.textSecondaryClass}`}>
+                <div className={`flex items-center justify-between text-xs font-semibold pt-2.5 border-t ${styles.dividerBorderClass} ${styles.textSecondaryClass}`}>
                   <div className="flex items-center gap-1.5">
-                    <Clock className="w-3 h-3 opacity-70" />
+                    <Clock className="w-3.5 h-3.5 text-amber-500" />
                     <span>{rest.deliveryTime}</span>
                     {rest.distance && <span>• {rest.distance}</span>}
                   </div>
-                  <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                  <span className="font-extrabold text-zinc-900 dark:text-zinc-100">
                     {rest.priceForTwo} for two
                   </span>
                 </div>

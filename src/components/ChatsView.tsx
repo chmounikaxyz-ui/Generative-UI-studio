@@ -28,6 +28,7 @@ interface AttachedFile {
   size: string;
   category: 'image' | 'doc' | 'media';
   previewUrl?: string;
+  base64Data?: string;
 }
 
 interface ChatsViewProps {
@@ -36,7 +37,7 @@ interface ChatsViewProps {
   onSelectProject: (schema: DynamicUISchema) => void;
   onDeleteProject?: (id: string) => void;
   onNewChat: () => void;
-  onGenerate: (prompt: string, isRefine?: boolean) => void;
+  onGenerate: (prompt: string, isRefine?: boolean, images?: string[]) => void;
   isLoading: boolean;
   onBackToList?: () => void;
   selectedModel?: string;
@@ -95,24 +96,37 @@ export const ChatsView: React.FC<ChatsViewProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
-  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>, category: 'image' | 'doc') => {
+  const readFileAsBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>, category: 'image' | 'doc') => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     const fileList: File[] = Array.from(files);
-    const newFiles: AttachedFile[] = fileList.map((file: File) => {
-      let previewUrl: string | undefined = undefined;
-      if (file.type.startsWith('image/')) {
-        previewUrl = URL.createObjectURL(file);
-      }
-      return {
-        id: Math.random().toString(36).substring(2, 9),
-        name: file.name,
-        size: formatFileSize(file.size),
-        category,
-        previewUrl
-      };
-    });
+    const newFiles: AttachedFile[] = await Promise.all(
+      fileList.map(async (file: File) => {
+        let previewUrl: string | undefined = undefined;
+        let base64Data: string | undefined = undefined;
+        if (file.type.startsWith('image/')) {
+          previewUrl = URL.createObjectURL(file);
+          base64Data = await readFileAsBase64(file);
+        }
+        return {
+          id: Math.random().toString(36).substring(2, 9),
+          name: file.name,
+          size: formatFileSize(file.size),
+          category,
+          previewUrl,
+          base64Data
+        };
+      })
+    );
 
     setAttachedFiles((prev) => [...prev, ...newFiles]);
     setIsPlusMenuOpen(false);
@@ -123,7 +137,7 @@ export const ChatsView: React.FC<ChatsViewProps> = ({
     setAttachedFiles((prev) => prev.filter((f) => f.id !== id));
   };
 
-  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const items = e.clipboardData?.items;
     if (!items) return;
 
@@ -140,16 +154,20 @@ export const ChatsView: React.FC<ChatsViewProps> = ({
 
     if (files.length > 0) {
       e.preventDefault();
-      const newFiles: AttachedFile[] = files.map((file: File) => {
-        const previewUrl = URL.createObjectURL(file);
-        return {
-          id: Math.random().toString(36).substring(2, 9),
-          name: file.name || `pasted-image-${Date.now().toString().slice(-4)}.png`,
-          size: formatFileSize(file.size),
-          category: 'image',
-          previewUrl
-        };
-      });
+      const newFiles: AttachedFile[] = await Promise.all(
+        files.map(async (file: File) => {
+          const previewUrl = URL.createObjectURL(file);
+          const base64Data = await readFileAsBase64(file);
+          return {
+            id: Math.random().toString(36).substring(2, 9),
+            name: file.name || `pasted-image-${Date.now().toString().slice(-4)}.png`,
+            size: formatFileSize(file.size),
+            category: 'image',
+            previewUrl,
+            base64Data
+          };
+        })
+      );
       setAttachedFiles((prev) => [...prev, ...newFiles]);
     }
   };
@@ -159,18 +177,22 @@ export const ChatsView: React.FC<ChatsViewProps> = ({
     if ((!inputPrompt.trim() && attachedFiles.length === 0) || isLoading) return;
 
     let finalPrompt = inputPrompt.trim();
+    const images = attachedFiles
+      .map((f) => f.base64Data)
+      .filter((b): b is string => Boolean(b));
+
     if (attachedFiles.length > 0) {
       const fileNames = attachedFiles.map((f) => f.name).join(', ');
       finalPrompt = finalPrompt
-        ? `${finalPrompt} (Attached files: ${fileNames})`
-        : `Attached files: ${fileNames}`;
+        ? `${finalPrompt} (Attached reference images/files: ${fileNames})`
+        : `Generate UI based on attached visual reference image(s): ${fileNames}`;
     }
 
     setInputPrompt('');
     setAttachedFiles([]);
     setIsPlusMenuOpen(false);
     setIsModelMenuOpen(false);
-    onGenerate(finalPrompt, true);
+    onGenerate(finalPrompt, true, images);
   };
 
   const AVAILABLE_MODELS = [
@@ -193,7 +215,7 @@ export const ChatsView: React.FC<ChatsViewProps> = ({
         {
           id: `init_assistant_${activeSchema.id}`,
           role: 'assistant',
-          content: activeSchema.description,
+          content: activeSchema.assistantMessage || activeSchema.description,
           timestamp: 'Just now',
           sectionsUpdated: activeSchema.layout?.length || 2
         }
@@ -241,12 +263,36 @@ export const ChatsView: React.FC<ChatsViewProps> = ({
         {activeSchema ? (
           <div className="space-y-3">
             {/* Timestamp Badge */}
-            <div className="text-center my-1">
+            <div className="text-center my-1 flex flex-col items-center gap-1.5">
               <span className="text-[9px] font-mono font-medium text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-full border border-zinc-200/60 inline-flex items-center gap-1">
                 <Clock className="w-2.5 h-2.5 text-zinc-400" />
-                <span>Session Active • {selectedModel}</span>
+                <span>Session Active • {
+                  activeSchema.connectionMode === 'openrouter' ? 'OpenRouter Live AI' :
+                  activeSchema.connectionMode === 'gemini' ? 'Gemini Live AI' :
+                  'Offline Fallback'
+                }</span>
               </span>
             </div>
+
+            {/* Warning when running in fallback mode */}
+            {activeSchema.connectionMode === 'fallback' && (
+              <div className="p-3 bg-amber-50/75 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-xl text-[10px] space-y-1 text-amber-800 dark:text-amber-400">
+                <div className="flex items-center gap-1 font-bold text-amber-900 dark:text-amber-300">
+                  <span>⚠️ AI Generation Offline</span>
+                </div>
+                <p className="leading-relaxed">
+                  Your prompt was processed using local rule-based matching.
+                </p>
+                {activeSchema.fallbackError && (
+                  <p className="font-mono text-[9px] bg-amber-100/50 dark:bg-amber-900/40 p-1.5 rounded text-amber-900 dark:text-amber-200 break-words mt-1">
+                    {activeSchema.fallbackError}
+                  </p>
+                )}
+                <p className="leading-relaxed mt-1">
+                  <strong>To activate live AI generation:</strong> Configure your API key in the <code>.env</code> file at the project root folder and restart the server.
+                </p>
+              </div>
+            )}
 
             {/* Render full message history thread */}
             {displayMessages.map((msg) => {

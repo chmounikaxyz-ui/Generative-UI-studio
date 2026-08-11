@@ -46,7 +46,11 @@ import {
   Pause,
   AlertTriangle,
   Send,
-  ZapOff
+  ZapOff,
+  Mic,
+  MicOff,
+  MessageSquare,
+  Bot
 } from 'lucide-react';
 import { getTopicImageUrl } from '../utils/imageResolver';
 
@@ -95,14 +99,41 @@ export interface NotificationItem {
   read: boolean;
 }
 
+export interface ChatMessageItem {
+  id: string;
+  sender: 'user' | 'ai';
+  text: string;
+  timestamp: string;
+  actionTaken?: string;
+  suggestedActions?: string[];
+}
+
 export const RemindMeApp: React.FC = () => {
   // Navigation & Theme State
   const [activeScreen, setActiveScreen] = useState<
-    'splash' | 'onboarding' | 'auth' | 'home' | 'calendar' | 'reminders' | 'alarms' | 'habits' | 'insights' | 'notifications' | 'profile' | 'settings'
-  >('home');
+    'splash' | 'onboarding' | 'auth' | 'home' | 'aichat' | 'calendar' | 'reminders' | 'alarms' | 'habits' | 'insights' | 'notifications' | 'profile' | 'settings'
+  >('aichat');
   const [themeMode, setThemeMode] = useState<'light' | 'dark'>('light');
   const [onboardingStep, setOnboardingStep] = useState<number>(0);
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'guest'>('login');
+
+  // AI Assistant Chat & Voice Commands State
+  const [isListeningVoice, setIsListeningVoice] = useState<boolean>(false);
+  const [chatInputText, setChatInputText] = useState<string>('');
+  const [chatMessages, setChatMessages] = useState<ChatMessageItem[]>([
+    {
+      id: 'msg_1',
+      sender: 'ai',
+      text: "Hello! I am your AI Personal Assistant. I can manage your tasks, reminders, calendar, voice commands, and smart alarms. How can I help you today?",
+      timestamp: '10:00 AM',
+      suggestedActions: [
+        '📅 Schedule team sync tomorrow at 2 PM',
+        '⏰ Set alarm for 6:30 AM with Math lock',
+        '📝 Add task: Review System Architecture PR',
+        '💧 Remind me to drink water every 2 hours'
+      ]
+    }
+  ]);
   
   // App Live Clock State
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
@@ -478,6 +509,94 @@ export const RemindMeApp: React.FC = () => {
     showToast(`🔥 Habit "${newHabit.title}" created!`);
   };
 
+  // AI Voice & Chat Assistant Message Handler
+  const handleSendChatMessage = (textToSend?: string) => {
+    const text = (textToSend || chatInputText).trim();
+    if (!text) return;
+
+    const userMsg: ChatMessageItem = {
+      id: `msg_u_${Date.now()}`,
+      sender: 'user',
+      text: text,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setChatMessages(prev => [...prev, userMsg]);
+    if (!textToSend) setChatInputText('');
+
+    setTimeout(() => {
+      const lower = text.toLowerCase();
+      let aiText = "I've processed your request!";
+      let actionLabel = "";
+
+      if (lower.includes('sync') || lower.includes('meeting') || lower.includes('schedule') || lower.includes('calendar')) {
+        const title = text.replace(/^(schedule|add|create|set)\s+/i, '');
+        const newRem: ReminderItem = {
+          id: `r_chat_${Date.now()}`,
+          title: title.charAt(0).toUpperCase() + title.slice(1),
+          time: '02:00 PM',
+          date: 'Tomorrow',
+          category: 'Work',
+          priority: 'high',
+          repeat: 'Once',
+          notificationLeadTime: '15 minutes before',
+          completed: false
+        };
+        setReminders(prev => [newRem, ...prev]);
+        aiText = `📅 Scheduled event: "${newRem.title}" for tomorrow at 2:00 PM. Added to your Calendar & Reminders list!`;
+        actionLabel = `Event Created: ${newRem.title}`;
+        showToast(`✨ Calendar Event "${newRem.title}" Scheduled!`);
+      } else if (lower.includes('alarm')) {
+        const newAl: AlarmItem = {
+          id: `a_chat_${Date.now()}`,
+          title: 'AI Smart Wake Alarm',
+          time: '06:30 AM',
+          days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+          active: true,
+          sound: 'Chime Breeze',
+          mathChallenge: true
+        };
+        setAlarms(prev => [...prev, newAl]);
+        aiText = `⏰ Smart Alarm set for 06:30 AM with Math Challenge lock. Stay sharp in the morning!`;
+        actionLabel = `Alarm Activated: 06:30 AM`;
+        showToast(`⏰ Alarm Set for 06:30 AM!`);
+      } else if (lower.includes('task') || lower.includes('todo') || lower.includes('review') || lower.includes('add')) {
+        const taskTitle = text.replace(/^(add task|create task|task|todo)\:?\s*/i, '');
+        const newRem: ReminderItem = {
+          id: `r_task_${Date.now()}`,
+          title: taskTitle.charAt(0).toUpperCase() + taskTitle.slice(1),
+          time: '04:00 PM',
+          date: 'Today',
+          category: 'Study',
+          priority: 'high',
+          repeat: 'Daily',
+          notificationLeadTime: '10 minutes before',
+          completed: false
+        };
+        setReminders(prev => [newRem, ...prev]);
+        aiText = `📝 Task "${newRem.title}" added to your Today Focus List with high priority.`;
+        actionLabel = `Task Added: ${newRem.title}`;
+        showToast(`📝 Task "${newRem.title}" Added!`);
+      } else if (lower.includes('water') || lower.includes('health') || lower.includes('drink')) {
+        aiText = `💧 Hydration goal updated! Reminders will ping you every 2 hours to keep you refreshed.`;
+        actionLabel = `Hydration Goal Active`;
+        showToast(`💧 Hydration Reminder Active!`);
+      } else {
+        aiText = `Got it! I've logged "${text}" and updated your personal command assistant workspace. What else would you like to schedule or automate?`;
+      }
+
+      const aiMsg: ChatMessageItem = {
+        id: `msg_ai_${Date.now()}`,
+        sender: 'ai',
+        text: aiText,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        actionTaken: actionLabel
+      };
+
+      setChatMessages(prev => [...prev, aiMsg]);
+    }, 600);
+  };
+
   // Increment Habit Progress
   const handleIncrementHabit = (id: string) => {
     setHabits(prev =>
@@ -669,7 +788,7 @@ export const RemindMeApp: React.FC = () => {
       )}
 
       {/* MAIN APPLICATION FRAME (HEADER + SIDEBAR/MOBILE NAV + SCREEN VIEWPORT) */}
-      {['home', 'calendar', 'reminders', 'alarms', 'habits', 'insights', 'notifications', 'profile', 'settings'].includes(activeScreen) && (
+      {['home', 'aichat', 'calendar', 'reminders', 'alarms', 'habits', 'insights', 'notifications', 'profile', 'settings'].includes(activeScreen) && (
         <div className="flex flex-1 min-h-screen">
           {/* DESKTOP LEFT SIDEBAR */}
           <aside className={`hidden md:flex flex-col w-64 border-r ${isDark ? 'border-zinc-800 bg-[#121827]' : 'border-zinc-200 bg-white'} p-4 justify-between shrink-0 sticky top-0 h-screen`}>
@@ -688,8 +807,9 @@ export const RemindMeApp: React.FC = () => {
               {/* Navigation Menu Links */}
               <nav className="space-y-1">
                 {[
+                  { id: 'aichat', label: 'AI Voice & Chat', icon: MessageSquare, badge: 'AI Studio' },
                   { id: 'home', label: 'Home Dashboard', icon: Home },
-                  { id: 'reminders', label: 'All Reminders', icon: Bell },
+                  { id: 'reminders', label: 'All Reminders & Tasks', icon: Bell },
                   { id: 'alarms', label: 'Smart Alarms', icon: Clock },
                   { id: 'calendar', label: 'Calendar View', icon: CalendarIcon },
                   { id: 'habits', label: 'Habit Tracker', icon: Flame },
@@ -703,14 +823,21 @@ export const RemindMeApp: React.FC = () => {
                     <button
                       key={item.id}
                       onClick={() => setActiveScreen(item.id as any)}
-                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                         isActive
                           ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
                           : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800'
                       }`}
                     >
-                      <IconComp className="w-4 h-4" />
-                      <span>{item.label}</span>
+                      <div className="flex items-center gap-3">
+                        <IconComp className="w-4 h-4" />
+                        <span>{item.label}</span>
+                      </div>
+                      {item.badge && (
+                        <span className={`px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider ${isActive ? 'bg-white/20 text-white' : 'bg-purple-500/10 text-purple-600 border border-purple-500/20'}`}>
+                          {item.badge}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -751,6 +878,7 @@ export const RemindMeApp: React.FC = () => {
                 </div>
                 <div className="hidden md:block">
                   <h2 className="text-sm font-extrabold uppercase tracking-wider text-zinc-400">
+                    {activeScreen === 'aichat' && 'AI Personal Voice & Chat Assistant'}
                     {activeScreen === 'home' && 'Home Dashboard'}
                     {activeScreen === 'reminders' && 'Reminders Directory'}
                     {activeScreen === 'alarms' && 'Smart Alarms & Wake Controls'}
@@ -797,6 +925,235 @@ export const RemindMeApp: React.FC = () => {
 
             {/* VIEWPORT SCREEN CONTENTS */}
             <div className="p-4 sm:p-8 max-w-6xl w-full mx-auto space-y-8">
+              {/* ====================================================
+                  SCREEN: AI PERSONAL VOICE & CHAT ASSISTANT
+                 ==================================================== */}
+              {activeScreen === 'aichat' && (
+                <div className="space-y-6">
+                  {/* Voice & Assistant Header Hero */}
+                  <div className={`p-6 rounded-3xl ${cardBgClass} border shadow-xl relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6`}>
+                    <div className="space-y-2 max-w-xl">
+                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-bold border border-purple-500/20">
+                        <Sparkles className="w-3.5 h-3.5 animate-spin" />
+                        <span>AI Studio • Voice & Personal Assistant</span>
+                      </div>
+                      <h2 className="text-2xl font-black tracking-tight">AI Personal Command Center</h2>
+                      <p className="text-xs text-zinc-500 font-medium">
+                        Control your schedule, create tasks, set smart alarms, manage reminders, and execute voice commands in real-time.
+                      </p>
+                    </div>
+
+                    {/* Voice Mic Command Box */}
+                    <div className={`p-4 rounded-2xl ${subCardBgClass} border ${isDark ? 'border-zinc-800' : 'border-zinc-200'} flex flex-col items-center justify-center shrink-0 min-w-[220px] text-center`}>
+                      <button
+                        onClick={() => {
+                          setIsListeningVoice(!isListeningVoice);
+                          if (!isListeningVoice) {
+                            showToast('🎙️ Voice Assistant Listening... Say your command!');
+                          }
+                        }}
+                        className={`w-14 h-14 rounded-full flex items-center justify-center transition-all cursor-pointer shadow-xl ${
+                          isListeningVoice
+                            ? 'bg-rose-500 text-white animate-pulse ring-8 ring-rose-500/20'
+                            : 'bg-indigo-600 text-white hover:scale-105 shadow-indigo-500/30'
+                        }`}
+                      >
+                        {isListeningVoice ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+                      </button>
+                      <span className="text-[11px] font-bold mt-2">
+                        {isListeningVoice ? '🔴 Listening for voice...' : 'Tap Mic for Voice Commands'}
+                      </span>
+                      <span className="text-[9px] text-zinc-400 font-semibold mt-0.5">"Hey Assistant..."</span>
+                    </div>
+                  </div>
+
+                  {/* Chat & Task Grid */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* AI Chat Window (2 cols) */}
+                    <div className={`lg:col-span-2 p-5 rounded-3xl ${cardBgClass} border shadow-lg flex flex-col h-[520px]`}>
+                      <div className="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center font-bold">
+                            <Bot className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h3 className="text-xs font-black">AI Assistant Live Stream</h3>
+                            <p className="text-[9px] text-emerald-500 font-semibold flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                              Online & Synced
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setChatMessages([])}
+                          className="text-[10px] text-zinc-400 font-bold hover:text-zinc-600 cursor-pointer"
+                        >
+                          Clear Chat
+                        </button>
+                      </div>
+
+                      {/* Chat Feed */}
+                      <div className="flex-1 overflow-y-auto py-4 space-y-3 px-1">
+                        {chatMessages.map(msg => (
+                          <div
+                            key={msg.id}
+                            className={`flex gap-2.5 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                          >
+                            {msg.sender === 'ai' && (
+                              <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                                🤖
+                              </div>
+                            )}
+                            <div className={`max-w-[82%] p-3.5 rounded-2xl text-xs space-y-1.5 ${
+                              msg.sender === 'user'
+                                ? 'bg-indigo-600 text-white rounded-tr-none shadow-md'
+                                : `${subCardBgClass} border ${isDark ? 'border-zinc-800' : 'border-zinc-200'} text-zinc-800 dark:text-zinc-200 rounded-tl-none`
+                            }`}>
+                              <p className="font-medium leading-relaxed">{msg.text}</p>
+                              {msg.actionTaken && (
+                                <div className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-extrabold flex items-center gap-1.5">
+                                  <CheckCircle2 className="w-3 h-3 shrink-0" />
+                                  <span>{msg.actionTaken}</span>
+                                </div>
+                              )}
+                              {msg.suggestedActions && msg.suggestedActions.length > 0 && (
+                                <div className="pt-2 flex flex-col gap-1.5">
+                                  <span className="text-[9px] font-bold text-zinc-400 uppercase">Suggested Voice & Chat Prompts:</span>
+                                  {msg.suggestedActions.map((sug, idx) => (
+                                    <button
+                                      key={idx}
+                                      onClick={() => handleSendChatMessage(sug)}
+                                      className="text-left px-2.5 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 text-[11px] font-bold transition-all cursor-pointer"
+                                    >
+                                      {sug}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                              <span className="block text-[9px] text-right opacity-60 font-semibold">{msg.timestamp}</span>
+                            </div>
+                            {msg.sender === 'user' && (
+                              <div className="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+                                M
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Input Bar */}
+                      <div className="pt-3 border-t border-zinc-200 dark:border-zinc-800 flex items-center gap-2 shrink-0">
+                        <input
+                          type="text"
+                          value={chatInputText}
+                          onChange={e => setChatInputText(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') handleSendChatMessage();
+                          }}
+                          placeholder="Ask AI Assistant or type command (e.g. 'Add task: Code review')..."
+                          className={`flex-1 p-3 rounded-2xl text-xs border ${isDark ? 'bg-zinc-800 border-zinc-700' : 'bg-zinc-50 border-zinc-200'} focus:outline-none focus:border-indigo-500 font-medium`}
+                        />
+                        <button
+                          onClick={() => handleSendChatMessage()}
+                          className={`p-3 rounded-2xl ${accentGradient} text-white font-bold shadow-md hover:opacity-90 cursor-pointer`}
+                        >
+                          <Send className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Live Synced Tasks & Reminders Widget Column (1 col) */}
+                    <div className="space-y-4">
+                      {/* Active Tasks & Reminders Panel */}
+                      <div className={`p-5 rounded-3xl ${cardBgClass} border shadow-lg space-y-3`}>
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+                            <Bell className="w-3.5 h-3.5 text-indigo-500" />
+                            Active Tasks & Reminders ({reminders.length})
+                          </h3>
+                          <button
+                            onClick={() => setIsCreateReminderOpen(true)}
+                            className="px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-600 text-[10px] font-bold hover:bg-indigo-500/20 cursor-pointer"
+                          >
+                            + New
+                          </button>
+                        </div>
+
+                        <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+                          {reminders.slice(0, 5).map(rem => (
+                            <div
+                              key={rem.id}
+                              className={`p-3 rounded-2xl ${subCardBgClass} border ${isDark ? 'border-zinc-800' : 'border-zinc-200'} flex items-center justify-between gap-2`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <button
+                                  onClick={() => toggleReminderComplete(rem.id)}
+                                  className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 cursor-pointer ${
+                                    rem.completed
+                                      ? 'bg-emerald-500 border-emerald-500 text-white'
+                                      : 'border-zinc-300 dark:border-zinc-600'
+                                  }`}
+                                >
+                                  {rem.completed && <Check className="w-3.5 h-3.5" />}
+                                </button>
+                                <div className="min-w-0">
+                                  <p className={`text-xs font-bold line-clamp-1 ${rem.completed ? 'line-through opacity-50' : ''}`}>
+                                    {rem.title}
+                                  </p>
+                                  <span className="text-[9px] text-zinc-400 font-semibold">{rem.time} • {rem.date}</span>
+                                </div>
+                              </div>
+                              <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-500 text-[9px] font-black shrink-0 uppercase">
+                                {rem.category}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Live Alarms & Quick Commands */}
+                      <div className={`p-5 rounded-3xl ${cardBgClass} border shadow-lg space-y-3`}>
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-xs font-black uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+                            <Clock className="w-3.5 h-3.5 text-amber-500" />
+                            Smart Alarms ({alarms.filter(a => a.active).length} Active)
+                          </h3>
+                          <button
+                            onClick={() => setIsAddAlarmOpen(true)}
+                            className="px-2.5 py-1 rounded-lg bg-amber-500/10 text-amber-600 text-[10px] font-bold hover:bg-amber-500/20 cursor-pointer"
+                          >
+                            + Alarm
+                          </button>
+                        </div>
+
+                        <div className="space-y-2">
+                          {alarms.map(alm => (
+                            <div
+                              key={alm.id}
+                              className={`p-3 rounded-2xl ${subCardBgClass} border ${isDark ? 'border-zinc-800' : 'border-zinc-200'} flex items-center justify-between`}
+                            >
+                              <div>
+                                <p className="text-sm font-black font-mono">{alm.time}</p>
+                                <p className="text-[10px] text-zinc-400 font-semibold">{alm.title}</p>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  setAlarms(prev => prev.map(a => a.id === alm.id ? { ...a, active: !a.active } : a));
+                                  showToast(`Alarm ${alm.active ? 'disabled' : 'enabled'}`);
+                                }}
+                                className={`w-10 h-6 rounded-full transition-colors relative cursor-pointer ${alm.active ? 'bg-indigo-600' : 'bg-zinc-300 dark:bg-zinc-700'}`}
+                              >
+                                <span className={`w-4 h-4 rounded-full bg-white absolute top-1 transition-transform ${alm.active ? 'right-1' : 'left-1'}`} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* ====================================================
                   SCREEN 4 & 5: HOME DASHBOARD
                  ==================================================== */}

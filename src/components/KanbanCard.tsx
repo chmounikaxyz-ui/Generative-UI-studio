@@ -9,9 +9,59 @@ interface KanbanCardProps {
   device?: 'desktop' | 'tablet' | 'mobile';
 }
 
+const DEFAULT_KANBAN_COLUMNS = [
+  { id: 'todo', title: 'To Do', color: '#f59e0b' },
+  { id: 'in_progress', title: 'In Progress', color: '#3b82f6' },
+  { id: 'done', title: 'Completed', color: '#10b981' }
+];
+
+const DEFAULT_KANBAN_ITEMS: KanbanItem[] = [
+  { id: 'k1', columnId: 'todo', title: 'Design System Audit & Micro-Interactions', priority: 'high', assignee: 'Alex R.', subtitle: 'Review color tokens & glassmorphic depth' },
+  { id: 'k2', columnId: 'in_progress', title: 'API Integration & Real-time Metrics', priority: 'medium', assignee: 'Sarah K.', subtitle: 'Connect live analytics pipeline' },
+  { id: 'k3', columnId: 'done', title: 'Setup Initial Dashboard Layout', priority: 'low', assignee: 'Jordan M.', subtitle: 'Configured base theme & responsiveness' }
+];
+
 export const KanbanCard: React.FC<KanbanCardProps> = ({ component, theme, device }) => {
-  const [columns] = useState(component.columns || []);
-  const [items, setItems] = useState<KanbanItem[]>(component.items || []);
+  const initialCols = ((component.columns && component.columns.length > 0) ? component.columns : DEFAULT_KANBAN_COLUMNS).map((col: any) => ({
+    ...col,
+    id: col.id || col.title || ''
+  }));
+  let initialItems = (component.items && component.items.length > 0) 
+    ? component.items 
+    : (component as any).cards || (component as any).tasks || [];
+
+  if (initialItems.length === 0) {
+    const title = (component.title || '').toLowerCase();
+    const isTransit = title.includes('train') || title.includes('station') || title.includes('departure') || title.includes('alert') || title.includes('track') || title.includes('maintenance') || title.includes('transit');
+    const isAcademic = title.includes('student') || title.includes('grade') || title.includes('academic') || title.includes('task') || title.includes('assignment') || title.includes('grading') || title.includes('class');
+
+    const firstColId = initialCols[0]?.id || 'todo';
+    const secondColId = initialCols[1]?.id || 'in_progress';
+    const thirdColId = initialCols[2]?.id || 'done';
+
+    if (isTransit) {
+      initialItems = [
+        { id: 't1', columnId: firstColId, title: 'Inspect Platform 3 Signals', priority: 'high', assignee: 'Track Team A', subtitle: 'Fault reported in relay housing' },
+        { id: 't2', columnId: secondColId, title: 'Mainline Signal Calibration', priority: 'medium', assignee: 'Signal Control', subtitle: 'Routine quarterly calibration' },
+        { id: 't3', columnId: thirdColId, title: 'Overhead Line Maintenance', priority: 'high', assignee: 'Electrical Crew', subtitle: 'Replaced contact wire near Platform 2' }
+      ];
+    } else if (isAcademic) {
+      initialItems = [
+        { id: 'a1', columnId: firstColId, title: 'Grade Midterm Essays', priority: 'high', assignee: 'Prof. Harrison', subtitle: 'Evaluate 42 literature reviews' },
+        { id: 'a2', columnId: secondColId, title: 'Develop Quiz Syllabus', priority: 'medium', assignee: 'TA Jordan', subtitle: 'Draft 15 multiple-choice questions' },
+        { id: 'a3', columnId: thirdColId, title: 'Publish Semester Roster', priority: 'low', assignee: 'Registrar', subtitle: 'Sync canvas enrollments' }
+      ];
+    } else {
+      initialItems = [
+        { id: 'g1', columnId: firstColId, title: 'Analyze Operational Logs', priority: 'medium', assignee: 'Support Lead', subtitle: 'Review system metrics & logs' },
+        { id: 'g2', columnId: secondColId, title: 'Resolve Dependency Conflict', priority: 'high', assignee: 'Dev Team', subtitle: 'Update server packages & bundle size' },
+        { id: 'g3', columnId: thirdColId, title: 'Deploy Sandbox Environment', priority: 'low', assignee: 'DevOps', subtitle: 'Created container clusters' }
+      ];
+    }
+  }
+
+  const [columns] = useState(initialCols);
+  const [items, setItems] = useState<KanbanItem[]>(initialItems);
   const styles = getThemeStyles(theme);
 
   const moveItem = (itemId: string, newColumnId: string) => {
@@ -31,7 +81,12 @@ export const KanbanCard: React.FC<KanbanCardProps> = ({ component, theme, device
 
       <div className={`grid ${device === 'mobile' ? 'grid-cols-1 gap-4' : 'grid-cols-1 md:grid-cols-3 gap-5'}`}>
         {columns.map(col => {
-          const colItems = items.filter(i => i.columnId === col.id);
+          const colItems = items.filter(i => 
+            i.columnId === col.id || 
+            (i as any).column === col.id || 
+            String(i.columnId || '').toLowerCase() === String(col.title || '').toLowerCase() ||
+            String((i as any).column || '').toLowerCase() === String(col.title || '').toLowerCase()
+          );
           return (
             <div
               key={col.id}

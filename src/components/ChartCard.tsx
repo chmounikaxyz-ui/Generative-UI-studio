@@ -29,22 +29,63 @@ const DEFAULT_COLOR_PALETTE = [
   '#10b981', '#4f46e5', '#8b5cf6', '#06b6d4', '#f59e0b', '#ec4899', '#0284c7', '#f43f5e'
 ];
 
+const DEFAULT_MOCK_DATA = [
+  { month: 'Mon', value: 45, target: 35 },
+  { month: 'Tue', value: 58, target: 42 },
+  { month: 'Wed', value: 72, target: 50 },
+  { month: 'Thu', value: 64, target: 55 },
+  { month: 'Fri', value: 88, target: 65 },
+  { month: 'Sat', value: 95, target: 70 },
+  { month: 'Sun', value: 82, target: 60 }
+];
+
 export const ChartCard: React.FC<ChartCardProps> = ({ component, theme }) => {
   const [activeChartType, setActiveChartType] = useState(component.chartType || 'line');
   const styles = getThemeStyles(theme);
 
-  const data = component.data || [];
-  const xAxisKey = component.xAxisKey || 'month';
-  const dataKeys = component.dataKeys || [{ key: 'value', name: 'Value', color: styles.primaryColorHex }];
+  const rawData = (component.data && component.data.length > 0) ? component.data : DEFAULT_MOCK_DATA;
+  const sampleObj = rawData[0] || {};
+  const sampleKeys = Object.keys(sampleObj);
+
+  // Determine X-Axis Key
+  const xAxisKey = component.xAxisKey && sampleKeys.includes(component.xAxisKey)
+    ? component.xAxisKey
+    : sampleKeys.find(k => k.toLowerCase().includes('month') || k.toLowerCase().includes('day') || k.toLowerCase().includes('date') || k.toLowerCase().includes('period') || k.toLowerCase().includes('label') || k.toLowerCase().includes('week') || k.toLowerCase().includes('name') || k.toLowerCase().includes('dept')) || sampleKeys[0] || 'label';
+
+  // Sanitize data values (convert numeric strings like "$450" or "450" into numbers)
+  const data = rawData.map(item => {
+    const newItem: any = { ...item };
+    Object.keys(newItem).forEach(k => {
+      if (k !== xAxisKey && typeof newItem[k] === 'string') {
+        const parsed = parseFloat(newItem[k].replace(/[^0-9.-]+/g, ''));
+        if (!isNaN(parsed)) {
+          newItem[k] = parsed;
+        }
+      }
+    });
+    return newItem;
+  });
+
+  const updatedSample = data[0] || {};
+  const numericKeysInData = Object.keys(updatedSample).filter(k => k !== xAxisKey && typeof updatedSample[k] === 'number');
+  const anyValueKeyInData = Object.keys(updatedSample).filter(k => k !== xAxisKey)[0] || 'value';
+
+  const rawDataKeys = (component.dataKeys && component.dataKeys.length > 0) 
+    ? component.dataKeys 
+    : [{ key: numericKeysInData[0] || 'value', name: component.title || 'Performance', color: styles.primaryColorHex }];
+
+  const dataKeys = rawDataKeys.map((dk, idx) => {
+    if (dk.key in updatedSample && typeof updatedSample[dk.key] !== 'undefined') {
+      return dk;
+    }
+    const fallbackKey = numericKeysInData[idx % (numericKeysInData.length || 1)] || anyValueKeyInData;
+    return {
+      ...dk,
+      key: fallbackKey
+    };
+  });
 
   const renderChart = () => {
-    if (!data.length) {
-      return (
-        <div className={`h-64 flex items-center justify-center ${styles.textSecondaryClass} opacity-60 text-xs`}>
-          No chart data available
-        </div>
-      );
-    }
 
     if (activeChartType === 'pie') {
       const pieKey = dataKeys[0]?.key || 'value';
@@ -187,7 +228,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({ component, theme }) => {
   };
 
   return (
-    <div className={`${styles.cardBgClass} border ${styles.cardBorderClass} ${styles.cardRadiusClass} ${styles.densityPaddingClass} ${styles.cardShadowClass} h-full flex flex-col justify-between transition-all`}>
+    <div className={`${styles.cardBgClass} border ${styles.cardBorderClass} ${styles.cardRadiusClass} ${styles.densityPaddingClass} ${styles.cardShadowClass} min-h-[300px] w-full flex flex-col justify-between transition-all`}>
       <div className="flex items-start justify-between mb-4">
         <div>
           <h3 className={`text-sm font-semibold ${styles.textPrimaryClass}`}>

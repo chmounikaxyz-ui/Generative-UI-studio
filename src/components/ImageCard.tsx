@@ -1,6 +1,7 @@
 import React from 'react';
 import { ImageComponentData, ThemeConfig } from '../types';
 import { getThemeStyles } from '../utils/themeUtils';
+import { getTopicImageUrl } from '../utils/imageResolver';
 
 interface ImageCardProps {
   component: ImageComponentData;
@@ -17,12 +18,16 @@ export const ImageCard: React.FC<ImageCardProps> = ({ component, theme }) => {
     component.aspectRatio === 'wide' ? 'aspect-[21/9]' :
     'aspect-auto';
 
+  const imageUrl = component.url && component.url.startsWith('http') && !component.url.includes('placeholder')
+    ? component.url 
+    : getTopicImageUrl(component.title || component.description || 'study');
+
   return (
     <div className={`${styles.cardBgClass} border ${styles.cardBorderClass} ${styles.cardRadiusClass} ${styles.cardShadowClass} overflow-hidden flex flex-col justify-between group transition-all duration-300 relative`}>
       {/* Bleed-to-edge Image Container */}
       <div className={`relative ${aspectClass} overflow-hidden w-full bg-zinc-150 dark:bg-zinc-800`}>
         <img
-          src={component.url}
+          src={imageUrl}
           alt={component.title}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           loading="lazy"

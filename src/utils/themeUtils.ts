@@ -50,14 +50,14 @@ export function getThemeStyles(theme?: ThemeConfig): ThemeStyles {
   const isSlate = mode === 'slate';
 
   // 1. Default Style Declarations
-  let containerBgClass = 'bg-[#f4f4f5] text-zinc-900';
+  let containerBgClass = 'bg-[#f8fafc] text-zinc-900';
   let cardBgClass = 'bg-white';
-  let cardBorderClass = 'border-zinc-200/90';
+  let cardBorderClass = 'border-zinc-200/80';
   let textPrimaryClass = 'text-zinc-900';
   let textSecondaryClass = 'text-zinc-500';
 
-  let subCardBgClass = 'bg-zinc-50';
-  let subCardBorderClass = 'border-zinc-200';
+  let subCardBgClass = 'bg-zinc-50/80';
+  let subCardBorderClass = 'border-zinc-200/80';
   let inputBgClass = 'bg-zinc-50';
   let inputBorderClass = 'border-zinc-200 focus:border-zinc-400';
   let inputTextClass = 'text-zinc-900';

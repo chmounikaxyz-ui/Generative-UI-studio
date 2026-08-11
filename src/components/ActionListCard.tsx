@@ -23,6 +23,9 @@ export const ActionListCard: React.FC<ActionListCardProps> = ({ component, theme
     <div className={`${styles.cardBgClass} border ${styles.cardBorderClass} ${styles.cardRadiusClass} ${styles.densityPaddingClass} ${styles.cardShadowClass} space-y-3.5 transition-all`}>
       <div className={`border-b ${styles.dividerBorderClass} pb-2.5`}>
         <h3 className={`text-sm font-semibold ${styles.textPrimaryClass}`}>{component.title}</h3>
+        {component.description && (
+          <p className={`text-xs ${styles.textSecondaryClass} mt-0.5`}>{component.description}</p>
+        )}
       </div>
 
       <div className="space-y-2.5">

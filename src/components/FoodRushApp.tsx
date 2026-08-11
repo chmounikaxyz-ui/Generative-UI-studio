@@ -197,45 +197,45 @@ export const FoodRushApp: React.FC = () => {
     <div className="w-full h-full bg-[#f8f9fa] dark:bg-[#0c0f17] text-zinc-900 dark:text-zinc-100 flex flex-col justify-between overflow-hidden font-sans relative selection:bg-amber-500 selection:text-white">
       
       {/* 1. Header Desktop / Mobile Bar */}
-      <header className="bg-white dark:bg-[#111622] border-b border-zinc-200/80 dark:border-zinc-800 px-4 py-3 flex items-center justify-between shrink-0 shadow-2xs z-30">
-        <div className="flex items-center gap-4">
+      <header className="bg-white dark:bg-[#111622] border-b border-zinc-200/80 dark:border-zinc-800 px-6 py-3.5 flex items-center justify-between shrink-0 shadow-2xs z-30">
+        <div className="flex items-center gap-6">
           <div 
             onClick={() => setActiveTab('home')}
             className="flex items-center gap-2 cursor-pointer group"
           >
-            <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center font-extrabold shadow-md group-hover:scale-105 transition-transform">
+            <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-orange-600 text-white flex items-center justify-center font-extrabold shadow-md group-hover:scale-105 transition-transform">
               <Utensils className="w-5 h-5" />
             </div>
-            <span className="text-lg font-black tracking-tight bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
+            <span className="text-xl font-black tracking-tight text-orange-600 dark:text-orange-500">
               FoodRush
             </span>
           </div>
 
-          <div className="hidden md:flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 rounded-xl text-xs font-bold text-zinc-700 dark:text-zinc-300">
+          <div className="hidden md:flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800/80 px-3.5 py-1.5 rounded-full text-xs font-bold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200/70 transition-colors cursor-pointer border border-zinc-200/60 dark:border-zinc-700/60">
             <MapPin className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-            <span className="truncate max-w-[180px]">Deliver to Home • 123 Green Park</span>
+            <span className="truncate max-w-[200px]">Deliver to Home • 123 Green ...</span>
             <ChevronRight className="w-3 h-3 text-zinc-400" />
           </div>
         </div>
 
         {/* Desktop Navigation Tabs */}
-        <nav className="hidden lg:flex items-center gap-6 text-xs font-bold">
-          <button onClick={() => setActiveTab('home')} className={`hover:text-amber-500 transition-colors cursor-pointer ${activeTab === 'home' ? 'text-amber-600' : 'text-zinc-500'}`}>Home</button>
-          <button onClick={() => setActiveTab('search')} className={`hover:text-amber-500 transition-colors cursor-pointer ${activeTab === 'search' ? 'text-amber-600' : 'text-zinc-500'}`}>Search</button>
-          <button onClick={() => setActiveTab('offers')} className={`hover:text-amber-500 transition-colors cursor-pointer ${activeTab === 'offers' ? 'text-amber-600' : 'text-zinc-500'}`}>Offers</button>
-          <button onClick={() => setActiveTab('orders')} className={`hover:text-amber-500 transition-colors cursor-pointer ${activeTab === 'orders' ? 'text-amber-600' : 'text-zinc-500'}`}>Orders</button>
-          <button onClick={() => setActiveTab('profile')} className={`hover:text-amber-500 transition-colors cursor-pointer ${activeTab === 'profile' ? 'text-amber-600' : 'text-zinc-500'}`}>Profile</button>
+        <nav className="hidden lg:flex items-center gap-8 text-xs font-extrabold">
+          <button onClick={() => setActiveTab('home')} className={`hover:text-amber-600 transition-colors cursor-pointer ${activeTab === 'home' ? 'text-orange-600 font-black' : 'text-zinc-600 dark:text-zinc-300'}`}>Home</button>
+          <button onClick={() => setActiveTab('search')} className={`hover:text-amber-600 transition-colors cursor-pointer ${activeTab === 'search' ? 'text-orange-600 font-black' : 'text-zinc-600 dark:text-zinc-300'}`}>Search</button>
+          <button onClick={() => setActiveTab('offers')} className={`hover:text-amber-600 transition-colors cursor-pointer ${activeTab === 'offers' ? 'text-orange-600 font-black' : 'text-zinc-600 dark:text-zinc-300'}`}>Offers</button>
+          <button onClick={() => setActiveTab('orders')} className={`hover:text-amber-600 transition-colors cursor-pointer ${activeTab === 'orders' ? 'text-orange-600 font-black' : 'text-zinc-600 dark:text-zinc-300'}`}>Orders</button>
+          <button onClick={() => setActiveTab('profile')} className={`hover:text-amber-600 transition-colors cursor-pointer ${activeTab === 'profile' ? 'text-orange-600 font-black' : 'text-zinc-600 dark:text-zinc-300'}`}>Profile</button>
         </nav>
 
         {/* Cart Icon & User */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => setActiveTab('cart')}
-            className="relative p-2 rounded-xl bg-amber-500/10 text-amber-600 hover:bg-amber-500 hover:text-white transition-all cursor-pointer"
+            className="relative p-2.5 rounded-full bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-white transition-all cursor-pointer border border-amber-200/50"
           >
             <ShoppingBag className="w-5 h-5" />
             {totalCartCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-amber-600 text-white font-extrabold text-[10px] w-4 h-4 rounded-full flex items-center justify-center border-2 border-white dark:border-zinc-900">
+              <span className="absolute -top-1 -right-1 bg-orange-600 text-white font-extrabold text-[10px] w-4 h-4 rounded-full flex items-center justify-center border-2 border-white dark:border-zinc-900">
                 {totalCartCount}
               </span>
             )}
@@ -243,7 +243,7 @@ export const FoodRushApp: React.FC = () => {
 
           <div 
             onClick={() => setActiveTab('profile')}
-            className="w-8 h-8 rounded-full bg-gradient-to-tr from-zinc-200 to-zinc-300 dark:from-zinc-800 dark:to-zinc-700 text-zinc-900 dark:text-zinc-100 font-bold text-xs flex items-center justify-center cursor-pointer border border-zinc-300 dark:border-zinc-700"
+            className="w-9 h-9 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-extrabold text-xs flex items-center justify-center cursor-pointer border border-zinc-300 dark:border-zinc-700 shadow-2xs hover:scale-105 transition-transform"
           >
             M
           </div>
@@ -261,25 +261,25 @@ export const FoodRushApp: React.FC = () => {
               onClick={() => setActiveTab('search')}
               className="relative w-full cursor-pointer group"
             >
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 group-hover:text-amber-500 transition-colors" />
+              <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 group-hover:text-amber-500 transition-colors" />
               <input
                 type="text"
                 readOnly
                 placeholder="Search for restaurants, dishes or cuisines..."
-                className="w-full bg-white dark:bg-[#111622] border border-zinc-200 dark:border-zinc-800 rounded-2xl pl-10 pr-4 py-3 text-xs shadow-2xs group-hover:border-amber-500/50 transition-all cursor-pointer"
+                className="w-full bg-white dark:bg-[#111622] border border-zinc-200 dark:border-zinc-800 rounded-2xl pl-11 pr-4 py-3.5 text-xs font-medium shadow-2xs group-hover:border-amber-500/60 transition-all cursor-pointer text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400"
               />
             </div>
 
             {/* Hero Offer Banner Carousel */}
-            <div className="relative rounded-3xl overflow-hidden shadow-md bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white p-6 sm:p-8 flex flex-col justify-between aspect-[21/9]">
-              <div className="max-w-md space-y-2 z-10">
-                <span className="bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider border border-white/30">
+            <div className="relative rounded-3xl overflow-hidden shadow-xl bg-gradient-to-r from-orange-500 via-orange-600 to-rose-600 text-white p-6 sm:p-10 flex flex-col justify-between aspect-[21/9] min-h-[220px]">
+              <div className="max-w-xl space-y-3 z-10">
+                <span className="inline-block bg-white/20 backdrop-blur-md px-3.5 py-1 rounded-full text-[10px] sm:text-xs font-extrabold uppercase tracking-wider border border-white/30 text-white shadow-2xs">
                   FOODRUSH FEAST • UP TO 50% OFF
                 </span>
-                <h2 className="text-xl sm:text-3xl font-black leading-tight drop-shadow-sm">
+                <h2 className="text-2xl sm:text-4xl font-black leading-tight drop-shadow-md tracking-tight">
                   Craving Gourmet Pizza or Biryani?
                 </h2>
-                <p className="text-xs text-white/90">
+                <p className="text-xs sm:text-sm text-white/90 max-w-md font-medium leading-relaxed">
                   Order from 2000+ top rated local restaurants with guaranteed 20-minute delivery.
                 </p>
               </div>
@@ -287,19 +287,23 @@ export const FoodRushApp: React.FC = () => {
               <div className="z-10 pt-4">
                 <button 
                   onClick={() => setActiveTab('offers')}
-                  className="bg-white text-orange-600 font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-lg hover:bg-zinc-100 transition-all cursor-pointer"
+                  className="bg-white text-orange-600 hover:bg-orange-50 font-extrabold text-xs sm:text-sm px-6 py-3 rounded-2xl shadow-xl transition-all cursor-pointer hover:scale-105 active:scale-95"
                 >
                   Claim Offer Now
                 </button>
               </div>
 
               {/* Background Food Art Overlay */}
-              <div className="absolute right-0 top-0 bottom-0 w-1/2 opacity-30 bg-cover bg-center pointer-events-none" style={{ backgroundImage: `url(https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800)` }} />
+              <div 
+                className="absolute right-0 top-0 bottom-0 w-3/5 bg-cover bg-center pointer-events-none opacity-45 mix-blend-overlay" 
+                style={{ backgroundImage: `url(https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1000)` }} 
+              />
+              <div className="absolute right-0 top-0 bottom-0 w-3/5 bg-gradient-to-r from-orange-600 via-orange-600/60 to-transparent pointer-events-none" />
             </div>
 
             {/* Food Categories Grid */}
             <div className="space-y-3">
-              <h3 className="text-sm sm:text-base font-black text-zinc-900 dark:text-zinc-100">
+              <h3 className="text-base sm:text-lg font-black text-zinc-900 dark:text-zinc-100 tracking-tight">
                 What's on your mind?
               </h3>
               <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
@@ -316,12 +320,12 @@ export const FoodRushApp: React.FC = () => {
                   <div
                     key={cat.name}
                     onClick={() => setActiveTab('search')}
-                    className="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-white dark:bg-[#111622] border border-zinc-200/80 dark:border-zinc-800 hover:border-amber-500 hover:-translate-y-1 transition-all cursor-pointer group text-center"
+                    className="flex flex-col items-center gap-2 p-3 rounded-2xl bg-white dark:bg-[#111622] border border-zinc-200/80 dark:border-zinc-800 shadow-2xs hover:border-amber-500/80 hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group text-center"
                   >
-                    <div className="w-12 h-12 rounded-full overflow-hidden p-0.5 bg-amber-50 border border-amber-200/50">
-                      <img src={cat.img} alt={cat.name} className="w-full h-full object-cover rounded-full group-hover:scale-110 transition-transform" />
+                    <div className="w-14 h-14 rounded-full overflow-hidden p-0.5 bg-gradient-to-tr from-amber-400 via-amber-200 to-amber-500 shadow-xs group-hover:scale-105 transition-transform">
+                      <img src={cat.img} alt={cat.name} className="w-full h-full object-cover rounded-full bg-white dark:bg-zinc-900" />
                     </div>
-                    <span className="text-[11px] font-bold text-zinc-800 dark:text-zinc-200 group-hover:text-amber-500 transition-colors">
+                    <span className="text-xs font-extrabold text-zinc-800 dark:text-zinc-200 group-hover:text-amber-600 transition-colors">
                       {cat.name}
                     </span>
                   </div>
@@ -332,10 +336,10 @@ export const FoodRushApp: React.FC = () => {
             {/* Top Restaurants Section */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm sm:text-base font-black text-zinc-900 dark:text-zinc-100">
+                <h3 className="text-base sm:text-lg font-black text-zinc-900 dark:text-zinc-100 tracking-tight">
                   Top Restaurants Near You
                 </h3>
-                <span onClick={() => setActiveTab('search')} className="text-xs font-bold text-amber-600 hover:underline cursor-pointer">
+                <span onClick={() => setActiveTab('search')} className="text-xs font-extrabold text-amber-600 hover:underline cursor-pointer">
                   See All
                 </span>
               </div>
@@ -348,37 +352,37 @@ export const FoodRushApp: React.FC = () => {
                       setSelectedRestaurant(rest);
                       setActiveTab('restaurant');
                     }}
-                    className="bg-white dark:bg-[#111622] border border-zinc-200/80 dark:border-zinc-800 rounded-3xl overflow-hidden hover:-translate-y-1 hover:shadow-lg transition-all duration-300 cursor-pointer group flex flex-col justify-between"
+                    className="bg-white dark:bg-[#111622] border border-zinc-200/80 dark:border-zinc-800 rounded-3xl overflow-hidden hover:-translate-y-1 hover:shadow-xl transition-all duration-300 cursor-pointer group flex flex-col justify-between"
                   >
                     <div className="relative aspect-[16/9] w-full overflow-hidden bg-zinc-100 dark:bg-zinc-800">
                       <img src={rest.imageUrl} alt={rest.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
-                      <div className="absolute bottom-2 left-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-extrabold text-[10px] px-2.5 py-1 rounded-md uppercase tracking-wider shadow-md">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                      <div className="absolute bottom-3 left-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-[11px] px-3 py-1 rounded-lg uppercase tracking-wider shadow-md">
                         {rest.offerBadge}
                       </div>
                     </div>
 
                     <div className="p-4 space-y-2">
                       <div className="flex items-center justify-between gap-2">
-                        <h4 className="text-sm font-extrabold text-zinc-900 dark:text-zinc-100 truncate group-hover:text-amber-500 transition-colors">
+                        <h4 className="text-base font-extrabold text-zinc-900 dark:text-zinc-100 truncate group-hover:text-amber-500 transition-colors">
                           {rest.name}
                         </h4>
-                        <div className="flex items-center gap-1 bg-emerald-600 text-white font-bold text-[11px] px-1.5 py-0.5 rounded shadow-2xs">
+                        <div className="flex items-center gap-1 bg-emerald-600 text-white font-extrabold text-xs px-2 py-0.5 rounded-md shadow-2xs shrink-0">
                           <span>{rest.rating}</span>
-                          <Star className="w-3 h-3 fill-white" />
+                          <Star className="w-3 h-3 fill-white text-white" />
                         </div>
                       </div>
 
-                      <p className="text-xs text-zinc-500 truncate">
+                      <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 truncate">
                         {rest.cuisine}
                       </p>
 
-                      <div className="flex items-center justify-between text-[11px] font-medium pt-2 border-t border-zinc-100 dark:border-zinc-800 text-zinc-500">
+                      <div className="flex items-center justify-between text-xs font-semibold pt-2.5 border-t border-zinc-100 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400">
                         <div className="flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-amber-500" />
+                          <Clock className="w-3.5 h-3.5 text-amber-500" />
                           <span>{rest.deliveryTime} • {rest.distance}</span>
                         </div>
-                        <span className="font-bold text-zinc-800 dark:text-zinc-200">{rest.priceForTwo} for two</span>
+                        <span className="font-extrabold text-zinc-900 dark:text-zinc-100">{rest.priceForTwo} for two</span>
                       </div>
                     </div>
                   </div>

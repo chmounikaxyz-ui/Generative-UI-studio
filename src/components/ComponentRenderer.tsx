@@ -26,13 +26,16 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({ component,
     case 'calculator':
       return <CalculatorCard component={component} theme={theme} onStateChange={onStateChange} device={device} />;
     case 'table':
-      return <TableCard component={component} theme={theme} device={device} />;
+    case 'data_table' as any:
+      return <TableCard component={component as any} theme={theme} device={device} />;
     case 'form':
       return <FormCard component={component} theme={theme} onSubmitAction={onStateChange} device={device} />;
     case 'kanban':
-      return <KanbanCard component={component} theme={theme} device={device} />;
+    case 'kanban_board' as any:
+      return <KanbanCard component={component as any} theme={theme} device={device} />;
     case 'alert':
-      return <AlertCard component={component} theme={theme} device={device} />;
+    case 'alert_banner' as any:
+      return <AlertCard component={component as any} theme={theme} device={device} />;
     case 'action_list':
       return <ActionListCard component={component} theme={theme} device={device} />;
     case 'image':

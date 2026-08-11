@@ -169,6 +169,7 @@ export interface ActionListComponentData {
   id: string;
   type: 'action_list';
   title: string;
+  description?: string;
   actions: ActionListItem[];
 }
 
@@ -258,6 +259,7 @@ export interface LayoutSection {
   id: string;
   title?: string;
   gridCols?: 1 | 2 | 3 | 4;
+  targetTab?: 'dashboard' | 'operations' | 'analytics' | 'all';
   components: UIComponent[];
 }
 
@@ -291,6 +293,12 @@ export interface ThemeConfig {
   fontBody?: string;
 }
 
+export interface CustomNavItem {
+  label: string;
+  icon: string;
+  tabId: string;
+}
+
 export interface DynamicUISchema {
   id: string;
   title: string;
@@ -299,10 +307,17 @@ export interface DynamicUISchema {
   theme: ThemeConfig;
   metrics: MetricItem[];
   layout: LayoutSection[];
+  operationsLayout?: LayoutSection[];
+  analyticsLayout?: LayoutSection[];
+  settingsLayout?: LayoutSection[];
   initialState: Record<string, any>;
   workflows?: WorkflowItem[];
   generatedPrompt?: string;
   messages?: ChatMessage[];
+  assistantMessage?: string;
+  connectionMode?: 'openrouter' | 'gemini' | 'fallback';
+  fallbackError?: string;
+  customNavigation?: CustomNavItem[];
 }
 
 export interface PresetTemplate {

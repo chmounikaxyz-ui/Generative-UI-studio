@@ -108,26 +108,9 @@ export const DEMO_BURN_RATE_SCHEMA: DynamicUISchema = {
     },
     {
       id: 'sec_2',
-      title: "Monthly Expense Breakdown & Log",
-      gridCols: 2,
+      title: "Executive Strategic Advisory",
+      gridCols: 1,
       components: [
-        {
-          id: 'comp_chart_expense_pie',
-          type: 'chart',
-          chartType: 'pie',
-          title: "Expense Breakdown by Department",
-          subtitle: "Percentage allocation of $195,000 gross monthly spend",
-          dataKeys: [
-            { key: "value", name: "Spend ($)", color: "#10b981" }
-          ],
-          data: [
-            { name: "Engineering & R&D", value: 95000, color: "#6366f1" },
-            { name: "Sales & Marketing", value: 45000, color: "#ec4899" },
-            { name: "Cloud & Infrastructure", value: 22000, color: "#06b6d4" },
-            { name: "Operations & Legal", value: 18000, color: "#f59e0b" },
-            { name: "SaaS Tools & Office", value: 15000, color: "#8b5cf6" }
-          ]
-        },
         {
           id: 'comp_alert_runway',
           type: 'alert',
@@ -138,17 +121,19 @@ export const DEMO_BURN_RATE_SCHEMA: DynamicUISchema = {
           actionLabel: "Export Deck Summary"
         }
       ]
-    },
+    }
+  ],
+  operationsLayout: [
     {
-      id: 'sec_3',
-      title: "Vendor & Expense Ledger",
+      id: 'sec_ops_1',
+      title: "Vendor & Subscriptions Operations Ledger",
       gridCols: 1,
       components: [
         {
           id: 'comp_table_vendors',
           type: 'table',
           title: "Recurring Monthly Vendor Expenses",
-          description: "Active vendor subscriptions and infrastructure line items",
+          description: "Active vendor subscriptions, contract commitments, and department approvals",
           searchable: true,
           exportable: true,
           columns: [
@@ -168,7 +153,55 @@ export const DEMO_BURN_RATE_SCHEMA: DynamicUISchema = {
           ],
           actionButtons: [
             { id: "add_exp", label: "Add Expense Line", icon: "Plus", action: "add_row" },
-            { id: "audit_vendors", label: "Audit Vendor Contracts", icon: "FileText", action: "trigger_workflow" }
+            { id: "audit_vendors", label: "Audit Contracts", icon: "FileText", action: "trigger_workflow" }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'sec_ops_2',
+      title: "Procurement & Approval Workflow Kanban",
+      gridCols: 1,
+      components: [
+        {
+          id: 'comp_kanban_procurement',
+          type: 'kanban',
+          title: "PO & Expense Approvals Pipeline",
+          columns: [
+            { id: 'p_req', title: "Requested (2)", color: "#94a3b8" },
+            { id: 'p_review', title: "Under Finance Review (3)", color: "#f59e0b" },
+            { id: 'p_appr', title: "Approved (8)", color: "#10b981" }
+          ],
+          items: [
+            { id: 'po1', columnId: 'p_review', title: "Datadog APM Upgrade ($3.2K/mo)", subtitle: "Infra - Requested by DevOps", priority: "high", tags: ["Observability", "Infra"], assignee: "VP Finance" },
+            { id: 'po2', columnId: 'p_req', title: "Figma Enterprise Seat Expansion", subtitle: "Design - 5 seats", priority: "medium", tags: ["Design", "SaaS"], assignee: "Unassigned" },
+            { id: 'po3', columnId: 'p_appr', title: "SOC2 Compliance Security Audit", subtitle: "Legal - One-time $18K", priority: "high", tags: ["Audit", "Compliance"], assignee: "CEO" }
+          ]
+        }
+      ]
+    }
+  ],
+  analyticsLayout: [
+    {
+      id: 'sec_an_1',
+      title: "Department Expense Breakdown",
+      gridCols: 2,
+      components: [
+        {
+          id: 'comp_chart_expense_pie',
+          type: 'chart',
+          chartType: 'pie',
+          title: "Expense Breakdown by Department",
+          subtitle: "Percentage allocation of $195,000 gross monthly spend",
+          dataKeys: [
+            { key: "value", name: "Spend ($)", color: "#10b981" }
+          ],
+          data: [
+            { name: "Engineering & R&D", value: 95000, color: "#6366f1" },
+            { name: "Sales & Marketing", value: 45000, color: "#ec4899" },
+            { name: "Cloud & Infrastructure", value: 22000, color: "#06b6d4" },
+            { name: "Operations & Legal", value: 18000, color: "#f59e0b" },
+            { name: "SaaS Tools & Office", value: 15000, color: "#8b5cf6" }
           ]
         }
       ]
@@ -249,17 +282,19 @@ export const SAAS_MRR_SCHEMA: DynamicUISchema = {
           ]
         }
       ]
-    },
+    }
+  ],
+  operationsLayout: [
     {
-      id: 'sec_2',
-      title: "Top Subscribers & Accounts",
+      id: 'sec_saas_ops_1',
+      title: "Customer Accounts & Subscription Operations Ledger",
       gridCols: 1,
       components: [
         {
           id: 'table_customers',
           type: 'table',
-          title: "Key Enterprise Accounts Ledger",
-          description: "High-value active subscription contracts and renewal dates",
+          title: "Key Enterprise Accounts Operations Ledger",
+          description: "High-value active subscription contracts, renewal dates, and health risk status",
           searchable: true,
           exportable: true,
           columns: [
@@ -275,6 +310,31 @@ export const SAAS_MRR_SCHEMA: DynamicUISchema = {
             { company: "Vanguard Analytics", tier: "Enterprise", mrr: 1495, status: "At Risk", renewal: "2026-09-10" },
             { company: "Nexus Digital Agency", tier: "Pro", mrr: 790, status: "Healthy", renewal: "2026-10-04" },
             { company: "Hyperion Labs", tier: "Enterprise", mrr: 2390, status: "Healthy", renewal: "2027-01-20" }
+          ],
+          actionButtons: [
+            { id: "renew_acc", label: "Extend Contract", icon: "RefreshCw", action: "trigger_workflow" },
+            { id: "export_saas", label: "Export Accounts", icon: "Download", action: "export" }
+          ]
+        }
+      ]
+    },
+    {
+      id: 'sec_saas_ops_2',
+      title: "Customer Support & Churn Triage Kanban",
+      gridCols: 1,
+      components: [
+        {
+          id: 'kanban_churn_triage',
+          type: 'kanban',
+          title: "Account Escalation & Renewal Pipeline",
+          columns: [
+            { id: 'c_flagged', title: "Risk Flagged (3)", color: "#f43f5e" },
+            { id: 'c_csm', title: "CSM Outreach (4)", color: "#f59e0b" },
+            { id: 'c_saved', title: "Saved / Renewed (12)", color: "#10b981" }
+          ],
+          items: [
+            { id: 'ch1', columnId: 'c_flagged', title: "Vanguard Analytics ($1,495 MRR)", subtitle: "Usage dropped 40% in last 14 days", priority: "high", tags: ["At Risk", "Renewal Soon"], assignee: "Alex (CSM)" },
+            { id: 'ch2', columnId: 'c_csm', title: "BetaSoft Systems ($790 MRR)", subtitle: "Requesting custom API SLA tier", priority: "medium", tags: ["SLA", "Feature Request"], assignee: "Sarah (Product)" }
           ]
         }
       ]
@@ -298,8 +358,44 @@ export const HIRING_PIPELINE_SCHEMA: DynamicUISchema = {
   initialState: {},
   layout: [
     {
+      id: 'sec_hiring_dash',
+      title: "Recruitment Overview & Velocity",
+      gridCols: 2,
+      components: [
+        {
+          id: 'chart_hiring_velocity',
+          type: 'chart',
+          chartType: 'bar',
+          title: "Monthly Hires by Department",
+          subtitle: "Offers accepted vs target hires",
+          xAxisKey: "dept",
+          dataKeys: [
+            { key: "hires", name: "Hires Made", color: "#8b5cf6" },
+            { key: "target", name: "Target Hires", color: "#94a3b8" }
+          ],
+          data: [
+            { dept: "Engineering", hires: 6, target: 8 },
+            { dept: "Product & Design", hires: 4, target: 4 },
+            { dept: "Sales & Marketing", hires: 5, target: 6 },
+            { dept: "Operations", hires: 2, target: 2 }
+          ]
+        },
+        {
+          id: 'action_recruiting_quick',
+          type: 'action_list',
+          title: "Recruitment Quick Actions",
+          actions: [
+            { id: "act_1", title: "Schedule Onsite Interview", description: "Coordinate calendar invites for final round candidates", buttonText: "Schedule Now" },
+            { id: "act_2", title: "Extend Compensation Offer", description: "Generate approved offer letter package", buttonText: "Draft Offer" }
+          ]
+        }
+      ]
+    }
+  ],
+  operationsLayout: [
+    {
       id: 'sec_kanban',
-      title: "Applicant Kanban Pipeline",
+      title: "Applicant Kanban Pipeline Workspace",
       gridCols: 1,
       components: [
         {
@@ -340,8 +436,42 @@ export const INVENTORY_MONITOR_SCHEMA: DynamicUISchema = {
   initialState: {},
   layout: [
     {
-      id: 'sec_inv',
-      title: "SKU Stock Levels & Inventory Ledger",
+      id: 'sec_inv_dash',
+      title: "Warehouse Demand & Alert Center",
+      gridCols: 2,
+      components: [
+        {
+          id: 'chart_inv_demand',
+          type: 'chart',
+          chartType: 'area',
+          title: "Weekly Order Velocity & Demand Projection",
+          subtitle: "Fulfillment units per week",
+          xAxisKey: "week",
+          dataKeys: [
+            { key: "orders", name: "Fulfilled Orders", color: "#f59e0b" }
+          ],
+          data: [
+            { week: "W1", orders: 1200 },
+            { week: "W2", orders: 1450 },
+            { week: "W3", orders: 1380 },
+            { week: "W4", orders: 1620 }
+          ]
+        },
+        {
+          id: 'alert_low_stock_critical',
+          type: 'alert',
+          title: "Critical Low Stock Alert",
+          severity: "warning",
+          message: "12 high-velocity SKUs have dropped below safety threshold (15 units). Automated purchase order draft ready.",
+          actionLabel: "Approve Auto-Reorder"
+        }
+      ]
+    }
+  ],
+  operationsLayout: [
+    {
+      id: 'sec_inv_ops',
+      title: "SKU Inventory & Warehouse Operations Ledger",
       gridCols: 1,
       components: [
         {
@@ -363,6 +493,9 @@ export const INVENTORY_MONITOR_SCHEMA: DynamicUISchema = {
             { sku: "SKU-4412", productName: "Ergonomic Mechanical Keyboard", quantity: 18, status: "Low Stock", unitCost: 62 },
             { sku: "SKU-1092", productName: "UltraWide 34' Curved Monitor", quantity: 120, status: "Optimal", unitCost: 290 },
             { sku: "SKU-8831", productName: "USB-C Multi-Port Docking Station", quantity: 14, status: "Low Stock", unitCost: 28 }
+          ],
+          actionButtons: [
+            { id: "reorder_all", label: "Trigger Batch Reorder", icon: "ShoppingCart", action: "trigger_workflow" }
           ]
         }
       ]
@@ -385,14 +518,41 @@ export const SPRINT_PLANNER_SCHEMA: DynamicUISchema = {
   initialState: {},
   layout: [
     {
-      id: 'sec_sprint',
-      title: "Sprint Tasks & Kanban",
+      id: 'sec_sprint_dash',
+      title: "Sprint Analytics & Burndown",
+      gridCols: 1,
+      components: [
+        {
+          id: 'chart_sprint_burndown',
+          type: 'chart',
+          chartType: 'line',
+          title: "Sprint 15 Velocity Burndown",
+          subtitle: "Ideal story points remaining vs actual progress",
+          xAxisKey: "day",
+          dataKeys: [
+            { key: "ideal", name: "Ideal Burndown", color: "#94a3b8" },
+            { key: "actual", name: "Actual Remaining", color: "#0284c7" }
+          ],
+          data: [
+            { day: "Day 1", ideal: 62, actual: 62 },
+            { day: "Day 3", ideal: 50, actual: 54 },
+            { day: "Day 5", ideal: 38, actual: 36 },
+            { day: "Day 8", ideal: 20, actual: 20 }
+          ]
+        }
+      ]
+    }
+  ],
+  operationsLayout: [
+    {
+      id: 'sec_sprint_ops',
+      title: "Sprint Task Board Operations",
       gridCols: 1,
       components: [
         {
           id: 'kanban_sprint',
           type: 'kanban',
-          title: "Sprint Task Board",
+          title: "Sprint Task Execution Board",
           columns: [
             { id: 's_todo', title: "To Do (12 pts)", color: "#94a3b8" },
             { id: 's_inprog', title: "In Progress (28 pts)", color: "#0284c7" },
@@ -425,8 +585,8 @@ export const HABIT_TRACKER_SCHEMA: DynamicUISchema = {
   initialState: {},
   layout: [
     {
-      id: 'sec_habit',
-      title: "Weekly Habit Consistency",
+      id: 'sec_habit_dash',
+      title: "Weekly Habit Consistency Overview",
       gridCols: 1,
       components: [
         {
@@ -445,6 +605,34 @@ export const HABIT_TRACKER_SCHEMA: DynamicUISchema = {
             { day: "Fri", hours: 6.0 },
             { day: "Sat", hours: 4.2 },
             { day: "Sun", hours: 4.8 }
+          ]
+        }
+      ]
+    }
+  ],
+  operationsLayout: [
+    {
+      id: 'sec_habit_ops',
+      title: "Focus Log & Daily Routine Operations",
+      gridCols: 2,
+      components: [
+        {
+          id: 'form_habit_log',
+          type: 'form',
+          title: "Log Today's Focus Session",
+          submitLabel: "Log Session",
+          fields: [
+            { id: 'f1', name: 'activity', label: 'Activity Name', fieldType: 'text', placeholder: 'e.g. Deep Work / Coding' },
+            { id: 'f2', name: 'duration', label: 'Duration (Minutes)', fieldType: 'number', placeholder: '60' }
+          ]
+        },
+        {
+          id: 'action_habits_daily',
+          type: 'action_list',
+          title: "Daily Habit Routines",
+          actions: [
+            { id: "h_act_1", title: "Morning Cold Shower & Meditation", description: "15 min mindfulness session", buttonText: "Mark Done" },
+            { id: "h_act_2", title: "Read 25 Pages of Non-Fiction", description: "Productivity & Systems thinking", buttonText: "Mark Done" }
           ]
         }
       ]
@@ -505,6 +693,15 @@ export const PRESET_TEMPLATES: PresetTemplate[] = [
     category: "Food & Dining",
     icon: "Utensils",
     prompt: "Design and build a modern food-delivery mobile and web application UI named FoodRush inspired by Swiggy.",
+    schema: undefined
+  },
+  {
+    id: 'ai_assistant_studio',
+    title: "AI Personal Assistant & Voice Studio",
+    description: "Full-featured AI Personal Assistant with voice commands, live chat stream, real-time task manager, calendar schedule, smart alarms, and habit tracker.",
+    category: "AI Personal Assistant",
+    icon: "Bot",
+    prompt: "AI Personal Assistant — tasks, reminders, calendar, voice commands, AI chat.",
     schema: undefined
   },
   {
